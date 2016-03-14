@@ -1,6 +1,13 @@
 #include "loop_generation.h"
 
-void test_raf_in (char* filename){
+
+/*         --PDBselect random access file--
+  Every residue record is 70 bytes:
+  4 letter pdb code (4 bytes) - 1 letter aa code (1 byte) - int residue # (4 bytes) - char chain id (1 byte) - 10 bytes total
+  Coordinates for N, CA, C, O, CB 12 bytes per atom (4 bytes per float) - 60 total
+  This function just reads and prints file for debugging purposes
+*/
+void pdbselect_raf_in (char* filename){
   //Try to open
   std::ifstream iofile(filename, std::fstream::binary);
   if (!iofile){
@@ -43,11 +50,14 @@ void test_raf_in (char* filename){
   return;
 }
 
+
+
+
+/*
+Counts loops in random access file. Keeps track of loops in 3D array.
+Truncate d(CA-CA) and d(CB-CB), multiply by 10 to get index
+*/
 void countLoops(char* filename, int loop_length, vec_3D& grid){
-  /*
-  Counts loops in random access file. Keeps track of loops in 3D array.
-  Truncate d(CA-CA) and d(CB-CB), multiply by 10 to get index
-  */
 
   //Try to open PDBselect file
   std::ifstream iofile(filename, std::fstream::binary);
@@ -174,6 +184,17 @@ void countLoops(char* filename, int loop_length, vec_3D& grid){
 
   return;
 }
+
+
+
+
+/*
+This function takes a 3D array of loop counts, and uses it to construct a 4D vector used
+for keeping track of loop writes to a random access file with records of variable length
+that contain rows of int(pdbselect fileposition), int(loop length)
+
+After writing to loop file, a random access file version of the 4D vector is written.
+*/
 
 void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& grid){
   //Initialize 4D vector to keep track of writes to loopfile
@@ -363,6 +384,9 @@ void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& g
   return;
 }
 
+
+
+
 //Function for reading loop pointer database (for debugging)
 void readLoops(char* loopfile){
 
@@ -429,6 +453,10 @@ void readGrid(char* gridfile){
 
 
 //Simple database query function
+/*  GRID ACCESS
+4D array is of the dimensions 500x500x10x2 with each entry being 4 bytes
+To access grid[i][j][k][l] from file use seekg( (40000 * i) + (80 * j) + (8 * k) + (4 * l) ) 
+*/
 void db_query(float dCA, float dCB, int loop_length, char* pdbselect, char* loopfile, char* gridfile){
   //Open grid file to find loop pointers in loop file
   std::ifstream grid_in(gridfile, std::fstream::binary);
@@ -522,14 +550,13 @@ void db_query(float dCA, float dCB, int loop_length, char* pdbselect, char* loop
 
 
     } //End loop
-    
+
     std::cout << "Real dCA: " << ca_ca_dist(loop) << "Query: " << float(dCA) / 10 << std::endl;
     loop.clear();
 
     std::cout << std::endl << std::endl;
 
   }
-
 
   return;
 

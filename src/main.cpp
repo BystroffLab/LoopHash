@@ -7,15 +7,19 @@ int main(int argc, char* argv[]){
   //typedef std::pair< std::vector< std::vector<float> > , std::vector<float> > return_val;
 
   /*
+  //Generate grid used to count loops/write loops
+
   vec_3D grid(500, std::vector<std::vector<int> >(500, std::vector<int>(10, 0) ) );
+
+  //Count loops of each length
   countLoops(argv[1], 4, grid);
   countLoops(argv[1], 5, grid);
   countLoops(argv[1], 6, grid);
   countLoops(argv[1], 7, grid);
-  */
 
-  //writeLoops(argv[1], "db.loop", "grid.arr", grid);
-  //readGrid("grid.arr");
+  //Write loops counted in the grid 
+  writeLoops(argv[1], "db.loop", "grid.arr", grid);
+  */
 
 
   /*
@@ -38,25 +42,10 @@ int main(int argc, char* argv[]){
 
 
 
-  //Check out the grid
-  /*
-  int loop_count = 0;
-  for (unsigned int i = 0; i < grid.size(); ++i){
-    for (unsigned int j = 0; j < grid.size(); ++j){
-      for (unsigned int k = 0; k < grid[i][j].size(); ++k){
-        if (grid[i][j][4] > 0){
-          std::cout << grid[i][j][4] << " ";
-          ++loop_count;
-        }
-      }
-    }
-  }
-  */
-  //std::cout << "Loop count: " << loop_count << std::endl;
-
-
   /*
   This try/catch block was used to construct the PDBselect random access file.
+  Run process.h with the executable compiled with this block uncommented in the
+  folder containing all pdbs to be indexed.
 
   try{
 

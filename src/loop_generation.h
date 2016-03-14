@@ -49,7 +49,7 @@ typedef std::vector<std::vector<std::vector<int> > > vec_3D;
 
 */
 
-void test_raf_in (char* filename);
+void pdbselect_raf_in (char* filename);
 
 void countLoops(char* filename, int length, vec_3D& grid);
 

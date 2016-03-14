@@ -15,6 +15,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "superimposer.h"
 
 class Protein {
 public:
@@ -52,15 +53,6 @@ float cb_cb_dist(std::vector< std::vector<float> > loop);
 float RMSD(const std::vector< std::vector<float> >& loop1, const std::vector< std::vector<float> >& loop2);
 float standard_deviation(const std::vector<float>& values, float mean);
 
-
-//Superimposer (for adding CB to glycine)
-std::pair< std::vector< std::vector<float> > , std::vector<float> > superimposer(std::vector< std::vector<float> > coord0, std::vector< std::vector<float> > coord1, unsigned int natm);
-void superimposer_move(std::vector<float>& x, std::vector< std::vector<float> >& mtx, std::vector<float>& vec);
-std::vector< std::vector<float> > transpose(std::vector< std::vector<float> >& coord0);
-void printVec(std::vector< std::vector<float> >& vec);
-
-//"Hash" function
-unsigned long int loopHash(std::vector< std::vector<float> > loop);
 
 //Output
 void PDB_out (const std::vector< std::vector<float> >& loop, char* filename );
