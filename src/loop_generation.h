@@ -53,7 +53,15 @@ void test_raf_in (char* filename);
 
 void countLoops(char* filename, int length, vec_3D& grid);
 
-void writeLoops(char*filename, vec_3D& grid);
+void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& grid);
+
+void readLoops(char* loopfile);
+
+void readGrid(char* gridfile);
+
+void pruneDB(char* pdbselect, char* loopfile, char* gridfile);
+
+void db_query(float dCA, float dCB, int loop_length, char* pdbselect, char* loopfile, char* gridfile);
 
 
 
