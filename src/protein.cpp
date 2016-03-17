@@ -26,7 +26,6 @@ Protein::Protein(const char* filename){
   amino_codes["TRP"] = 'W';   amino_codes["TYR"] = 'Y';
 
 
-
   //Try to open the PDB file for reading
   std::ifstream pdb_str(filename);
   if (!pdb_str.good()) {
@@ -202,37 +201,14 @@ Protein::Protein(const char* filename){
 
 
 
-//------------------Loop Generation------------------//
-
-void Protein::getLoops(int length, std::vector< std::vector< std::vector<float> > >& loop_list){
-  //Use a sliding window of the length given to generate loops and push into vector
-  if (length == 0 || length == 1){
-    std::cerr << "ERROR: Loop of length less than 2 residues requested." << std::endl;
-    return;
-  }
-  if (backbone_coordinates.size() == 0){
-    std::cerr << "ERROR: No backbone coordinates." << std::endl;
-    return;
-  }
-
-  for(unsigned int i = 0; i < (backbone_coordinates.size() / 5) - length -1 ; ++i){
-      std::vector< std::vector<float> > residues(backbone_coordinates.begin() + (i*5), backbone_coordinates.begin() + (i*5) + (length * 5));
-      loop_list.push_back(residues);
-  }
-
-  return;
-}//End getLoops
-
-
-
-
 //------------------Distance Calculators------------------//
 
 float ca_ca_dist(std::vector< std::vector<float> > loop){
-  if (loop.size() == 0){
+  if (loop.size() == 0 || loop.size() == 1){
     std::cerr << "ERROR: No loop to measure. " << std::endl;
     return 0;
   }
+
   //CA1 = loop[1];
   //CA2 = loop[loop.size() - 5];
   float x = pow( (loop[1][0] - loop[loop.size() - 4][0]) , 2);
@@ -243,10 +219,11 @@ float ca_ca_dist(std::vector< std::vector<float> > loop){
 }
 
 float cb_cb_dist(std::vector< std::vector<float> > loop){
-  if (loop.size() == 0){
+  if (loop.size() == 0 || loop.size() == 1){
     std::cerr << "ERROR: No loop to measure. " << std::endl;
     return 0;
   }
+
   //CB1 = loop[4];
   //CB2 = loop[loop.size() - 1];
   float x =  pow( (loop[4][0] - loop[loop.size() - 1][0]) , 2);
@@ -320,6 +297,10 @@ float standard_deviation(const std::vector<float>& values, float mean){
 }
 
 
+
+
+
+
 //------------------Output ------------------//
 void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
   //Try to open file for writing
@@ -330,6 +311,7 @@ void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
   }
 
   /*
+
   -----PDB ATOM RECORD-----
   col  |  field
   -------------------------------------------
@@ -348,6 +330,7 @@ void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
   60-65  B factor
   76-77  Element symbol (right-justified)
   78-79  Atom charge
+  
   */
 
   std::vector<std::string> atoms = {" N  ", " CA ", " C  ", " O  ", " CB "};
@@ -413,6 +396,9 @@ void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
 
 out_file.close();
 }
+
+
+
 
 
 //------------------PDBselect random access file output ------------------//

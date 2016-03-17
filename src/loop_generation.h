@@ -46,7 +46,6 @@ typedef std::vector<std::vector<std::vector<int> > > vec_3D;
   and multiplying loops x residue length x 8 bytes. Keeps track of how filled the record is
 
 
-
 */
 
 void pdbselect_raf_in (char* filename);
@@ -59,9 +58,7 @@ void readLoops(char* loopfile);
 
 void readGrid(char* gridfile);
 
-void pruneDB(char* pdbselect, char* loopfile, char* gridfile);
-
-void db_query(float dCA, float dCB, int loop_length, char* pdbselect, char* loopfile, char* gridfile);
+void db_query(float CA_CA, float CB_CB, int loop_length, char* pdbselect, char* loopfile, char* gridfile);
 
 
 

@@ -116,7 +116,6 @@ superimposer(std::vector< std::vector<float> > coord0, std::vector< std::vector<
     ++iteration_count;
     if (iteration_count > 500){ break; }
 
-    //ix,iy,iz are only allowed to be 0, 1, or 2?
     iy = ix + 1;
     if (iy == 3){
       iy = 0;
@@ -151,7 +150,7 @@ superimposer(std::vector< std::vector<float> > coord0, std::vector< std::vector<
       continue;
     }
 
-    //Actual rotations (??)
+
     for (int i = 0; i < 3; ++i){
       bb = (gamma * aa[iy][i]) + (sigma * aa[iz][i]);
       cc = (gamma * aa[iz][i]) - (sigma * aa[iy][i]);
@@ -184,7 +183,6 @@ superimposer(std::vector< std::vector<float> > coord0, std::vector< std::vector<
       for (int k = 0; k < 3; ++k){
         //Seemingly a rotation
         t[j] = t[j] + (rotation[j][k] * x1[k][i]);
-        //For some reason everything's coming out rotated 180deg about x(?), so let's rotate it back
       }
     }
     for (int j = 0; j < 3; ++j){
@@ -218,8 +216,6 @@ superimposer(std::vector< std::vector<float> > coord0, std::vector< std::vector<
     vec[i] = t[i];
   }
 
-
-  //std::cout << "RMSD: " << err << std::endl << std::endl;
 
   return_val ret = std::make_pair(mtx, vec);
   return ret;

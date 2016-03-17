@@ -1,3 +1,8 @@
+#ifndef superimposer_h
+#define superimposer_h
+
+
+
 #include <vector>
 #include <utility>
 #include <iostream>
@@ -15,3 +20,7 @@ std::vector< std::vector<float> > transpose(std::vector< std::vector<float> >& c
 
 //For debugging
 void printVec(std::vector< std::vector<float> >& vec);
+
+
+
+#endif

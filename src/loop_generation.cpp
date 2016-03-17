@@ -215,7 +215,7 @@ void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& g
         //That number is the total record size for this bin
         write_progress[i][j][k][0] = grid[i][j][k];
 
-        //Figure out where these loops are going to be in the file
+        //Figure out where these loops are going to be in the loop db file
         if (grid[i][j][k] > 0){
           write_progress[i][j][k][2] = file_pos;
           file_pos = file_pos + (8 * grid[i][j][k]);
@@ -242,6 +242,7 @@ void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& g
     return;
   }
 
+
   //Get length of PDBselect
   unsigned int size;
   infile.seekg(0, infile.end);
@@ -258,6 +259,7 @@ void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& g
   char chain;                               //Token to hold chain (eventually will be criteria)
   int counter = 0;                          //How far are we through the current loop?
   std::vector< std::vector<float> > loop;   //Holds backbone coordinates for some calculations
+
 
   for (int loop_length = 4; loop_length < 8; ++loop_length){
     absolute_position = 0;
@@ -346,13 +348,8 @@ void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& g
 
         }
 
-        /*
-        loop_out.seekp( write_progress[ca_index][cb_index][loop_length][2] );
-        loop_out.write( (const char*)& absolute_position, sizeof(unsigned int) );
-        loop_out.write( (const char*)& loop_length, sizeof(int) );
-        */
 
-      }//Finished doing stuff with loop
+      }//Finished doing stuff with current loop
 
       //Get vector ready for next set of coordinates
       loop.clear();
@@ -365,11 +362,11 @@ void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& g
 
  }
 
-  //Build 3d grid of pairs <record position, length> , write to file
+  //Build 3D grid of pairs <record position, length> , write to file
   std::ofstream grid_out(gridfile, std::ios::binary | std::ios::out);
   grid_out.seekp( (500 * 500 * 10 * 8) - 1);
-  grid_out.write("", 1);
-  grid_out.seekp(0);
+  grid_out.write("", 1);  //Create empty file
+  grid_out.seekp(0);      //Return to start of file
 
   for (int i = 0; i < 500; ++i){
     for (int j = 0; j < 500; ++j){
@@ -416,7 +413,7 @@ void readLoops(char* loopfile){
 
 }
 
-
+//Function for reading grid (for debugging)
 void readGrid(char* gridfile){
   //Try to open file
   std::ifstream infile(gridfile, std::fstream::binary);
@@ -455,9 +452,25 @@ void readGrid(char* gridfile){
 //Simple database query function
 /*  GRID ACCESS
 4D array is of the dimensions 500x500x10x2 with each entry being 4 bytes
-To access grid[i][j][k][l] from file use seekg( (40000 * i) + (80 * j) + (8 * k) + (4 * l) ) 
+To access grid[i][j][k][l] from file use seekg( (40000 * i) + (80 * j) + (8 * k) + (4 * l) )
 */
-void db_query(float dCA, float dCB, int loop_length, char* pdbselect, char* loopfile, char* gridfile){
+void db_query(float CA_CA, float CB_CB, int loop_length, char* pdbselect, char* loopfile, char* gridfile){
+  //Truncate floats, multiply by 10 to get int
+  char sz[64];
+  double lf = CA_CA;
+  sprintf(sz, "%.1lf\n", lf);
+  double lf2 = atof(sz);
+  CA_CA = lf2;
+
+  lf = CB_CB;
+  sprintf(sz, "%.1lf\n", lf);
+  lf2 = atof(sz);
+  CB_CB = lf2;
+
+  int dCA = CA_CA * 10;
+  int dCB = CB_CB * 10;
+
+
   //Open grid file to find loop pointers in loop file
   std::ifstream grid_in(gridfile, std::fstream::binary);
   if (!grid_in){
@@ -520,7 +533,8 @@ void db_query(float dCA, float dCB, int loop_length, char* pdbselect, char* loop
   std::vector<float> xyz;
 
 
-  //Output loops
+  //Output
+  std::cout << loop_pointers.size() << std::endl;
   for (unsigned int i = 0; i < loop_pointers.size(); ++i){
     pdb_in.seekg(loop_pointers[i][0]);
     std::cout << "----------------- Loop " << i + 1 << " -----------------" << std::endl;
@@ -551,7 +565,9 @@ void db_query(float dCA, float dCB, int loop_length, char* pdbselect, char* loop
 
     } //End loop
 
-    std::cout << "Real dCA: " << ca_ca_dist(loop) << "Query: " << float(dCA) / 10 << std::endl;
+    std::cout << "Real dCA: " << ca_ca_dist(loop) << " dCA Query: " << CA_CA << std::endl;
+    std::cout << "Real dCB: " << cb_cb_dist(loop) << " dCA Query: " << CB_CB << std::endl;
+
     loop.clear();
 
     std::cout << std::endl << std::endl;
