@@ -24,7 +24,6 @@ public:
 
   //Accessors
   std::vector<std::vector<float> > getCoordinates() const{ return backbone_coordinates; }
-  void getLoops(int length, std::vector< std::vector< std::vector<float> > >& loop_list);
   std::string getIdentifier() const{ return identifier; }
 
   //Output
