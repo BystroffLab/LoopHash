@@ -198,6 +198,16 @@ Protein::Protein(const char* filename){
 
 }//End Protein constructor
 
+//------------------Accessors------------------//
+std::vector<std::vector<float> > Protein::getLoop(int start, int end) const{
+  if ( start > this->size() || start + end > this->size() ){
+    throw 0;
+  }
+  std::vector<std::vector<float> > return_loop(backbone_coordinates.begin() + ((start - 1)*5), backbone_coordinates.begin() + (end*5 - 1));
+  return return_loop;
+}
+
+
 
 
 
@@ -215,7 +225,7 @@ float ca_ca_dist(std::vector< std::vector<float> > loop){
   float y = pow( (loop[1][1] - loop[loop.size() - 4][1]) , 2);
   float z = pow( (loop[1][2] - loop[loop.size() - 4][2]) , 2);
 
-  return sqrt( x + y + z);
+  return sqrt( x + y + z );
 }
 
 float cb_cb_dist(std::vector< std::vector<float> > loop){
@@ -230,9 +240,16 @@ float cb_cb_dist(std::vector< std::vector<float> > loop){
   float y =  pow( (loop[4][1] - loop[loop.size() - 1][1]) , 2);
   float z =  pow( (loop[4][2] - loop[loop.size() - 1][2]) , 2);
 
-  return sqrt( x + y + z);
+  return sqrt( x + y + z );
 }
 
+float atom_dist(const std::vector<float>& atom1, const std::vector<float>& atom2){
+  float x = pow( atom1[0] - atom2[0] , 2);
+  float y = pow( atom1[1] - atom2[1] , 2);
+  float z = pow( atom1[2] - atom2[2] , 2);
+
+  return sqrt( x + y + z );
+}
 
 
 
@@ -302,9 +319,24 @@ float standard_deviation(const std::vector<float>& values, float mean){
 
 
 //------------------Output ------------------//
-void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
-  //Try to open file for writing
-  std::ofstream out_file(filename);
+void PDB_out (const std::vector< std::vector<float> >& loop, const std::vector<char> residues, char* filename){
+  ////Initialize map of 3-letter amino acid codes to 1 letter codes
+  std::map< char, std::string > amino_codes;
+  amino_codes['A'] = "ALA";   amino_codes['C'] = "CYS";
+  amino_codes['D'] = "ASP";   amino_codes['E'] = "GLU";
+  amino_codes['F'] = "PHE";   amino_codes['G'] = "GLY";
+  amino_codes['H'] = "HIS";   amino_codes['I'] = "ILE";
+  amino_codes['K'] = "LYS";   amino_codes['L'] = "LEU";
+  amino_codes['M'] = "MET";   amino_codes['N'] = "ASN";
+  amino_codes['P'] = "PRO";   amino_codes['Q'] = "GLN";
+  amino_codes['R'] = "ARG";   amino_codes['S'] = "SER";
+  amino_codes['T'] = "THR";   amino_codes['V'] = "VAL";
+  amino_codes['W'] = "TRP";   amino_codes['Y'] = "TYR";
+
+
+
+
+  std::ofstream out_file(filename, std::fstream::app);
   if ( !out_file.good() ) {
     std::cerr << "Can't open " << filename << " to write." << std::endl;
     exit(1);
@@ -330,7 +362,7 @@ void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
   60-65  B factor
   76-77  Element symbol (right-justified)
   78-79  Atom charge
-  
+
   */
 
   std::vector<std::string> atoms = {" N  ", " CA ", " C  ", " O  ", " CB "};
@@ -344,12 +376,11 @@ void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
     std::string line(80, ' ');
     line.replace(0, 6, "ATOM  ");
     line.replace(12, 4, atoms[i%5]);
-    line.replace(17, 3, "ALA");
-    line.replace(21, 1, "A");
+    line.replace(21, 1, " ");
 
     //xyz coordinates
     std::stringstream xyz;
-    xyz.precision(3);
+    xyz.precision(5);
     xyz << std::setw(6) << loop[i][0] << "  " << std::setw(6) << loop[i][1] << "  " << std::setw(6) << loop[i][2];
     std::string xyz_str = xyz.str();
     line.replace(32, 20, xyz_str);
@@ -361,6 +392,9 @@ void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
       counter1 = 0;
       ++counter2;
     }
+    std::string tmp_residue = amino_codes.find(residues[counter2-1])->second;
+    line.replace(17, 3, tmp_residue);
+
 
     //No convenient way to convert ints to strings for serial number, residue number
     std::stringstream ss1;
@@ -390,13 +424,56 @@ void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
   out_file << line << std::endl;
 
   //End of file
-  line.replace(0, 6, "END   ");
+  line.replace(0, 6, "      ");
   std::cout << line << std::endl;
   out_file << line << std::endl;
 
 out_file.close();
 }
 
+
+//------------------        Collision detection         ------------------//
+//Detect if any loop atoms (excluding anchors) are within 4A of non-bonded atoms, return true if collision
+bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, int start, int end) const{
+  bool collision = false;
+
+  //Check all residues before insertion
+  //For each backbone atom i before anchor
+  for (int i = 0; i < (start * 5) - 10; ++i){
+
+    //For each insertion atom j (excluding anchors)
+    for (unsigned int j = 5; j < insertion.size() - 5; ++j){
+      if ( atom_dist(insertion[j], backbone_coordinates[i]) < 4.0){
+        collision = true;
+        //std::cout << "Collision! Atoms are " << atom_dist(insertion[j], backbone_coordinates[i]) << "apart." << std::endl;
+        break;
+      }
+    }
+
+    if (collision == true){ break; }
+
+  }
+
+  //Check all residues after insertion
+
+  for (unsigned int i = (end * 5) + 5; i < backbone_coordinates.size(); ++i){
+
+    //For each insertion atom j (excluding anchors)
+    for (unsigned int j = 5; j < insertion.size() - 5; ++j){
+      if ( atom_dist(insertion[j], backbone_coordinates[i]) < 4.0){
+        collision = true;
+        //std::cout << "After-loop collision! Atoms are " << atom_dist(insertion[j], backbone_coordinates[i]) << "apart." << std::endl;
+        break;
+      }
+    }
+
+    if (collision == true){ break; }
+
+  }
+
+
+  return collision;
+}
 
 
 

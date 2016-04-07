@@ -1,48 +1,43 @@
-//--- PDB Parser ---//
+
 #include "protein.h"
 #include "loop_generation.h"
-#include <windows.h>
 
 int main(int argc, char* argv[]){
 
 
-  std::cout << "Enter query in form 'query dCA dCB length (in residues)'" << std::endl;
-  std::cout << "Enter 'stop' to end query." << std::endl << std::endl;
 
-  while (true){
-    float ca;
-    float cb;
-    int len;
-    std::string cmd;
 
-    std::cin >> cmd >> ca >> cb >> len;
-    if (cmd == "query"){
 
-      //Start timer
-      __int64 ctr1 = 0, ctr2 = 0, freq = 0;
-      if ( QueryPerformanceCounter( (LARGE_INTEGER *) &ctr1) != 0){
+      // ./query.exe  pdbselect.prot  db.loop  grid.arr  min  max  ca  cb  len  output
 
-        //Run query, print results
-        db_query(ca, cb, len, argv[1], argv[2], argv[3]);
+      std::pair< std::vector<std::vector<std::vector<float> > > , std::vector<std::vector<char> > >
+      pdb_output;
+      float ca = atof(argv[6]);
+      float cb = atof(argv[7]);
+      int len = atoi(argv[8]);
 
-        //End timer
-        QueryPerformanceCounter((LARGE_INTEGER *) &ctr2);
-        QueryPerformanceCounter((LARGE_INTEGER *) &freq);
-
-        std::cout << "Query took " << ((ctr2 - ctr1) * 1.0 / freq) << " us" << std::endl;
+      if (argc < 10 ){
+        std::cerr << "Not enough arguments!" << std::endl;
+        return 0;
       }
-    }
+      pdb_output = db_query(ca, cb, len , argv[1], argv[2], argv[3]);
 
-    else if (cmd == "stop"){
-      break;
-    }
 
-    else{
-      std::cout << "Command not recognized." << std::endl;
-      continue;
-    }
 
-  }
+
+
+      //Try pdb output
+      /*
+      if (pdb_output.first.size() > 0){
+        PDB_out(pdb_output.first[0], pdb_output.second[0], argv[9]);
+      }
+      */
+
+
+      //Output all results
+      for (unsigned int i = 0; i < pdb_output.first.size(); ++i){
+        PDB_out(pdb_output.first[i], pdb_output.second[i], argv[9]);
+      }
 
 
   /*

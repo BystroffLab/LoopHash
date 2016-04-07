@@ -58,8 +58,15 @@ void readLoops(char* loopfile);
 
 void readGrid(char* gridfile);
 
-void db_query(float CA_CA, float CB_CB, int loop_length, char* pdbselect, char* loopfile, char* gridfile);
+std::pair< std::vector<std::vector<std::vector<float> > > , std::vector<std::vector<char> > >
+db_query(float CA_CA, float CB_CB, int loop_length, char* pdbselect, char* loopfile, char* gridfile);
 
+
+void continuous_query_helper(std::vector<std::vector<std::vector<float> > >& results, float CA_CA, float CB_CB, int loop_length,
+  char* pdbselect, char* loopfile, char* gridfile);
+
+std::vector<std::vector<std::vector<float> > > continuous_query_wrapper(float CA_CA, float CB_CB, 
+  char* pdbselect, char* loopfile, char* gridfile);
 
 
 #endif

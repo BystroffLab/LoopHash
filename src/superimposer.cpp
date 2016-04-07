@@ -75,7 +75,6 @@ superimposer(std::vector< std::vector<float> > coord0, std::vector< std::vector<
   //---End Center on origin---//
 
 
-  //Not sure what this is but it seems like a bunch of dot products
   matrix aa;
   aa.resize(3, std::vector<float>(3, 0.0) );
   for (unsigned int i = 0; i < natm; ++i){
