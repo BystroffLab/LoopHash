@@ -91,13 +91,38 @@ compareAnchors(std::vector<std::vector<std::vector<float> > >& loop_list, std::v
     transformation = superimposer(original_superposer_in, list_superposer_in, 10);
     for (unsigned int j = 0; j < list_superposer_in.size(); ++j){
       superimposer_move(list_superposer_in[j], transformation.first, transformation.second);
+    }
+    for (unsigned int j = 0; j < loop_list[i].size(); ++j){
       superimposer_move(loop_list[i][j], transformation.first, transformation.second);
     }
 
+
     float rmsd = RMSD(original_superposer_in, list_superposer_in);
     int len = loop_list[i].size()/5;
+    //If we get a crazy high RMSD, write out template and insertion to the same pdb file for inspection
     if (rmsd > 5){
       std::cout << "RMSD of " << rmsd << " when trying to insert " << len << std::endl;
+      //Use int of rmsd to generate filename
+      int i_rmsd = rmsd * 100;
+      std::stringstream ss;
+      ss << i_rmsd;
+      std::string s_rmsd = ss.str();
+      s_rmsd = s_rmsd + ".pdb";
+      char* filename = const_cast<char*>( s_rmsd.c_str() );
+      PDB_out(loop_list[i], filename);
+      PDB_out(original_loop, filename);
+    }
+    if (rmsd < 1.3){
+      //std::cout << "RMSD of " << rmsd << " when trying to insert " << len << std::endl;
+      //Use int of rmsd to generate filename
+      int i_rmsd = rmsd * 100;
+      std::stringstream ss;
+      ss << i_rmsd;
+      std::string s_rmsd = ss.str();
+      s_rmsd = s_rmsd + ".pdb";
+      char* filename = const_cast<char*>( s_rmsd.c_str() );
+      //PDB_out(loop_list[i], filename);
+      //PDB_out(original_loop, filename);
     }
     //std::cout << "RMSD after:: " << rmsd << std::endl;
 
@@ -128,6 +153,24 @@ void excelOutput(char* outfile, std::vector<std::pair<int, float> > statistics){
   return;
 }
 
+//Outputs .csv in the form Loop Length,Anchor RMSD,Sequence Separation
+void excelOutput(char* outfile, std::vector<std::pair<int, float> > statistics, int sequence_separation){
+
+  //Try to open file for output (append onto end of file)
+  std::ofstream out_file(outfile, std::fstream::app);
+  if ( !out_file.good() ) {
+    std::cerr << "Can't open " << out_file << " to write." << std::endl;
+    exit(1);
+  }
+
+  //Write out data from vector of <int,float> pairs
+  for (unsigned int i = 0; i < statistics.size(); ++i){
+    out_file << statistics[i].first << ',' << statistics[i].second << ',' << sequence_separation << "\n";
+  }
+
+  return;
+}
+
 //----------------------------------------------------------
 //----------------------------------------------------------
 
@@ -148,10 +191,10 @@ int main(int argc, char* argv[]){
 
   for(int i = 0; i < anchor_sets; ++i){
     //Choose random loop takes 2 int references, updates when it's chosen a suitable loop
-    //start - end + 1 == sequence separation
+    //end -start + 1 == sequence separation
     int start = 0; int end = 0;
     std::vector<std::vector<float> > myLoop = chooseRandomLoop(test_set, start, end);
-
+    int sequence_separation = end - start + 1;
     //--------------------------------------------------------
     //Query database for all loops 2 < L < 20 given dCA and dCB
     //--------------------------------------------------------
@@ -185,9 +228,9 @@ int main(int argc, char* argv[]){
     std::cout << "Start: " << start << "End: " << end << std::endl;
     auto time_end = std::chrono::steady_clock::now();
     auto difference = time_end - time_start;
-    timing.push_back(std::make_pair( query_return.size(), std::chrono::duration<double, std::milli>(difference).count() ));
-    std::cout << std::chrono::duration<double, std::milli>(difference).count() << " ms" << std::endl;
-    excelOutput(argv[2] , timing);
+    //timing.push_back(std::make_pair( query_return.size(), std::chrono::duration<double, std::milli>(difference).count() ));
+    //std::cout << std::chrono::duration<double, std::milli>(difference).count() << " ms" << std::endl;
+    //excelOutput(argv[2] , statistics, sequence_separation);
     timing.clear();
 
   }

@@ -48,15 +48,14 @@ Protein::Protein(const char* filename){
   int residue_number;
   std::vector<float> xyz(3);
 
-
   //In the PDB Select data given, records start with ATOM, identifier is just the file name minus .pdb
-  /*
-  std::getline(pdb_str, line);
-  identifier = line.substr( line.size() - 4 , 4 );
-  */
   std::string tmp_identifier = filename;
-  identifier = tmp_identifier.substr(0, 4);
-  std::cout << "IDENTIFIER: " << identifier << " Length: " << identifier.size() << std::endl;
+  if (tmp_identifier.size() > 3){
+    identifier = tmp_identifier.substr(0, 4);
+  }
+  else{
+    identifier = "TEMP";
+  }
 
   //Skip ahead to the ATOM records (if necessary)
   while (token != "ATOM  "){
@@ -67,13 +66,10 @@ Protein::Protein(const char* filename){
   //If the first atom is CA, assume this file is only CAs
   std::string ca_test = line.substr(12, 3);
   if (ca_test == " CA"){
-    std::cout << "this is getting tripped" << std::endl << std::endl;
     throw 0;
   }
 
-  while ( !pdb_str.eof() ){
-
-
+  while ( !pdb_str.eof() && line.size() > 54 ){
     if (token == "CONECT"){ break; }
     //We don't care about HETATMs or TERs, skip to next line
     else if (token == "HETATM" || token == "TER   "){
@@ -82,8 +78,6 @@ Protein::Protein(const char* filename){
     }
 
     else if (token == "ATOM  "){
-      //std::cout << line << std::endl;
-
       //Some terminal atoms end in OXT, ignore these
       std::string oxt_test = line.substr(12, 3);
       if (oxt_test == "OXT"){ break; }
@@ -91,8 +85,8 @@ Protein::Protein(const char* filename){
       //We want coordinates for backbone atoms N, CA, C, O, CB
       AA = line.substr(17,3);
       residue_number = atoi( line.substr(23,3).c_str() );
+      //std::cerr << " Residue: " << residue_number;
       chainID = line.substr(21,1);
-
 
       //Glycine doesn't have a beta carbon, superpose an alanine onto it to get CB coordinates
       if (AA == "GLY"){
@@ -111,7 +105,6 @@ Protein::Protein(const char* filename){
           //Some terminal atoms end in OXT, ignore these
           std::string oxt_test = line.substr(12, 3);
           if (oxt_test == "OXT"){ break; }
-
           token = line.substr(0,6);
         }
 
@@ -135,7 +128,6 @@ Protein::Protein(const char* filename){
           }
         }
 
-
         //Add glycine to vector of peptide backbone_coordinates if all atoms are there
         if (tmp_gly.size() == 5){
           for (int i = 0; i < 5; ++i){
@@ -146,13 +138,11 @@ Protein::Protein(const char* filename){
           }
         }
 
-
       } //End of residue
 
       else{
         //Grab this line and the next four atoms' xyz coordinates, building point vector and pushing info into vectors
         for (int i = 0; i < 5; ++i){
-
           xyz[0] =  atof( line.substr(30,8).c_str() );
           xyz[1] =  atof( line.substr(38,8).c_str() );
           xyz[2] =  atof( line.substr(46,8).c_str() );
@@ -166,17 +156,15 @@ Protein::Protein(const char* filename){
           //Get next line
           std::getline(pdb_str, line);
           if ( pdb_str.eof() ){ break; }
-          //std::cout << line << std::endl;
           token = line.substr(0,6);
-
         }
 
         //Skip past the rest of the associated atoms in the residue
         if ( pdb_str.eof() ){ break; }
         int tmp_residue_number = atoi( line.substr(23,3).c_str() );
-        while (tmp_residue_number == residue_number && (token != "HETATM" && token != "TER   ") ){
+        while (tmp_residue_number == residue_number && (token != "HETATM" && token != "TER   " && token != "END   ") ){
           std::getline(pdb_str, line);
-          if ( pdb_str.eof() ){ break; }
+          if ( pdb_str.eof() || line.size() < 6){ break; }
           token = line.substr(0,6);
           tmp_residue_number = atoi( line.substr(23,3).c_str() );
         }
@@ -186,9 +174,11 @@ Protein::Protein(const char* filename){
 
   pdb_str.close();
 
-  /*Sometimes there's an extra atom or two from a residue not fully included in the chain.
+  /*
+    Sometimes there's an extra atom or two from a residue not fully included in the chain.
     Pop these off the back of the vector until only complete residues remain
   */
+
   while (backbone_coordinates.size() % 5 != 0){
     backbone_coordinates.pop_back();
     atom_residue_numbering.pop_back();
@@ -196,6 +186,7 @@ Protein::Protein(const char* filename){
     residue_type.pop_back();
   }
 
+//std::cout << "Finished" << std::endl;
 }//End Protein constructor
 
 //------------------Accessors------------------//
@@ -203,15 +194,12 @@ std::vector<std::vector<float> > Protein::getLoop(int start, int end) const{
   if ( start > this->size() || start + end > this->size() ){
     throw 0;
   }
-  std::vector<std::vector<float> > return_loop(backbone_coordinates.begin() + ((start - 1)*5), backbone_coordinates.begin() + (end*5 - 1));
+  std::vector<std::vector<float> > return_loop(backbone_coordinates.begin() + ((start - 1)*5), backbone_coordinates.begin() + (end*5));
   return return_loop;
 }
 
 
-
-
-
-//------------------Distance Calculators------------------//
+//------------------Measuring------------------//
 
 float ca_ca_dist(std::vector< std::vector<float> > loop){
   if (loop.size() == 0 || loop.size() == 1){
@@ -247,7 +235,6 @@ float atom_dist(const std::vector<float>& atom1, const std::vector<float>& atom2
   float x = pow( atom1[0] - atom2[0] , 2);
   float y = pow( atom1[1] - atom2[1] , 2);
   float z = pow( atom1[2] - atom2[2] , 2);
-
   return sqrt( x + y + z );
 }
 
@@ -315,10 +302,8 @@ float standard_deviation(const std::vector<float>& values, float mean){
 
 
 
-
-
-
 //------------------Output ------------------//
+//When we actually have the sequence
 void PDB_out (const std::vector< std::vector<float> >& loop, const std::vector<char> residues, char* filename){
   ////Initialize map of 3-letter amino acid codes to 1 letter codes
   std::map< char, std::string > amino_codes;
@@ -332,8 +317,6 @@ void PDB_out (const std::vector< std::vector<float> >& loop, const std::vector<c
   amino_codes['R'] = "ARG";   amino_codes['S'] = "SER";
   amino_codes['T'] = "THR";   amino_codes['V'] = "VAL";
   amino_codes['W'] = "TRP";   amino_codes['Y'] = "TYR";
-
-
 
 
   std::ofstream out_file(filename, std::fstream::app);
@@ -380,10 +363,10 @@ void PDB_out (const std::vector< std::vector<float> >& loop, const std::vector<c
 
     //xyz coordinates
     std::stringstream xyz;
-    xyz.precision(5);
-    xyz << std::setw(6) << loop[i][0] << "  " << std::setw(6) << loop[i][1] << "  " << std::setw(6) << loop[i][2];
+    xyz.precision(3);
+    xyz << std::fixed << std::right << std::setw(7) << loop[i][0] << " " << std::setw(7) << loop[i][1] << " " << std::setw(7) << loop[i][2];
     std::string xyz_str = xyz.str();
-    line.replace(32, 20, xyz_str);
+    line.replace(31, 20, xyz_str);
 
     //Atom counting
     int sn = i + 1;
@@ -412,9 +395,8 @@ void PDB_out (const std::vector< std::vector<float> >& loop, const std::vector<c
     residue_no = whitespace + residue_no;
     line.replace(6, 5, serial_no);
     line.replace(22, 4, residue_no);
-    line.replace(75, 2, elements[i%5]);
+    line.replace(77, 2, elements[i%5]);
 
-    std::cout << line << std::endl;
     out_file << line << std::endl;
   }//End of ATOM records
 
@@ -425,12 +407,112 @@ void PDB_out (const std::vector< std::vector<float> >& loop, const std::vector<c
 
   //End of file
   line.replace(0, 6, "      ");
-  std::cout << line << std::endl;
+  //std::cout << line << std::endl;
   out_file << line << std::endl;
 
 out_file.close();
 }
 
+/*
+  When we don't have the sequence (or don't want to output the original sequence)
+  Rosetta automatically builds sidechains when you make a pose from a loop
+  Don't need that if you're designing a sequence onto a backbone
+*/
+void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
+
+  //Try to open file for writing
+  std::ofstream out_file(filename, std::fstream::app);
+  if ( !out_file.good() ) {
+    std::cerr << "Can't open " << filename << " to write." << std::endl;
+    exit(1);
+  }
+
+  /*
+  -----PDB ATOM RECORD-----
+  col  |  field
+  -------------------------------------------
+  0-5    Record name (ATOM  )
+  6-10   Serial number (integer)
+  12-15  Atom name
+  16     Alternate location indicator
+  17-19  Residue name
+  21     Chain identifier (char)
+  22-25  Residue sequence number
+  26     Code for insertion of residues
+  30-37  Orthogonal x coordinates (angstroms)
+  38-45  Orthogonal y coordinates
+  46-53  Orthogonal z coordinates
+  54-59  Occupancy (float)
+  60-65  B factor
+  76-77  Element symbol (right-justified)
+  78-79  Atom charge
+
+  */
+
+  std::vector<std::string> atoms = {" N  ", " CA ", " C  ", " O  ", " CB "};
+  std::vector<std::string> elements = {"N ", "C ", "C ", "O ", "C "};
+  int counter1 = 0;
+  int counter2 = 1;
+  std::string whitespace(1, ' ');
+
+  for (unsigned int i = 0; i < loop.size(); ++i, ++counter1){
+    //Non-numeric data
+    std::string line(80, ' ');
+    line.replace(0, 6, "ATOM  ");
+    line.replace(12, 4, atoms[i%5]);
+    line.replace(21, 1, " ");
+
+    //xyz coordinates
+    std::stringstream xyz;
+    xyz.precision(4);
+    xyz << std::setw(7) << loop[i][0] << " " << std::setw(7) << loop[i][1] << " " << std::setw(7) << loop[i][2];
+    std::string xyz_str = xyz.str();
+    line.replace(30, 20, xyz_str);
+
+    //Atom counting
+    int sn = i + 1;
+    //Residue counting
+    if (counter1 == 5){
+      counter1 = 0;
+      ++counter2;
+    }
+
+    line.replace(17, 3, "ALA");
+
+    //No convenient way to convert ints to strings for serial number, residue number
+    std::stringstream ss1;
+    std::stringstream ss2;
+    ss1 << sn;
+    ss2 << counter2;
+
+    std::string serial_no = ss1.str();
+    std::string residue_no = ss2.str();
+
+    whitespace.resize(5 - serial_no.size(), ' ');
+    serial_no =  whitespace+ serial_no;
+
+    whitespace.resize(4 - residue_no.size(), ' ');
+    residue_no = whitespace + residue_no;
+    line.replace(6, 5, serial_no);
+    line.replace(22, 4, residue_no);
+    line.replace(75, 2, elements[i%5]);
+
+    //std::cout << line << std::endl;
+    out_file << line << std::endl;
+  }//End of ATOM records
+
+  //Terminate Chain
+  std::string line(80, ' ');
+  line.replace(0, 6, "TER   ");
+  out_file << line << std::endl;
+
+  //End of file
+  line.replace(0, 6, "      ");
+  //std::cout << line << std::endl;
+  out_file << line << std::endl;
+
+out_file.close();
+}
 
 //------------------        Collision detection         ------------------//
 //Detect if any loop atoms (excluding anchors) are within 4A of non-bonded atoms, return true if collision
@@ -440,37 +522,30 @@ bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, i
   //Check all residues before insertion
   //For each backbone atom i before anchor
   for (int i = 0; i < (start * 5) - 10; ++i){
-
     //For each insertion atom j (excluding anchors)
     for (unsigned int j = 5; j < insertion.size() - 5; ++j){
-      if ( atom_dist(insertion[j], backbone_coordinates[i]) < 4.0){
+      if ( atom_dist(insertion[j], backbone_coordinates[i]) < 5.0){
         collision = true;
         //std::cout << "Collision! Atoms are " << atom_dist(insertion[j], backbone_coordinates[i]) << "apart." << std::endl;
         break;
       }
     }
-
     if (collision == true){ break; }
-
   }
 
   //Check all residues after insertion
 
-  for (unsigned int i = (end * 5) + 5; i < backbone_coordinates.size(); ++i){
-
+  for (unsigned int i = (end * 5) + 10; i < backbone_coordinates.size(); ++i){
     //For each insertion atom j (excluding anchors)
     for (unsigned int j = 5; j < insertion.size() - 5; ++j){
-      if ( atom_dist(insertion[j], backbone_coordinates[i]) < 4.0){
+      if ( atom_dist(insertion[j], backbone_coordinates[i]) < 3.5){
         collision = true;
         //std::cout << "After-loop collision! Atoms are " << atom_dist(insertion[j], backbone_coordinates[i]) << "apart." << std::endl;
         break;
       }
     }
-
     if (collision == true){ break; }
-
   }
-
 
   return collision;
 }
@@ -494,7 +569,6 @@ bool Protein::RAF_out(char* filename){
     std::cerr << "Can't open " << filename << " to write." << std::endl;
     return false;
   }
-
 
   //Write info
   for (unsigned int i = 0; i < backbone_coordinates.size() ; i += 5){

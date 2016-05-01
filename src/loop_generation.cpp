@@ -1,6 +1,5 @@
 #include "loop_generation.h"
 
-
 /*         --PDBselect random access file--
   Every residue record is 70 bytes:
   4 letter pdb code (4 bytes) - 1 letter aa code (1 byte) - int residue # (4 bytes) - char chain id (1 byte) - 10 bytes total
@@ -35,22 +34,18 @@ void pdbselect_raf_in (char* filename){
     iofile.read( (char*)& chain, sizeof(char) );
     pdb_code[4] = '\0';
 
-    std::cout << "PDB " << pdb_code << "  Residue " << aa << residue_number << " Chain " << chain << std::endl;
 
     for (int i = 0; i < 5; ++i){
       float x; float y; float z;
       iofile.read( (char*)& x, sizeof(float) );
       iofile.read( (char*)& y, sizeof(float) );
       iofile.read( (char*)& z, sizeof(float) );
-      std::cout << x << " " << y << " " << z << std::endl;
     }
   }
 
   iofile.close();
   return;
 }
-
-
 
 
 /*
@@ -102,7 +97,6 @@ void countLoops(char* filename, int loop_length, vec_3D& grid){
     counter = 0;
     //Start generating the loop
     while ( counter < loop_length  &&  iofile.tellg() < size ){
-      //std::cout << "COUNTER: " << counter << std::endl << std::endl;
       //Check to make sure the residue being read is from the same protein (don't care if this is the start of new loop)
       iofile.read( temporary_pdb_code, (sizeof(char) * 4) );
       temporary_pdb_code[4] = '\0';
@@ -115,11 +109,9 @@ void countLoops(char* filename, int loop_length, vec_3D& grid){
         std::copy(temporary_pdb_code, temporary_pdb_code + 5, current_pdb_code);
       }
 
-      //Don't really need this data (skip past this with seekg(tellg + 6)?)
       iofile.read( (char*)& aa, sizeof(char) );
       iofile.read( (char*)& residue_number, sizeof(int) );
       iofile.read( (char*)& chain, sizeof(char) );
-
 
       //Get coordinates for this residue, push back into loop
       std::vector<float> xyz;
@@ -134,7 +126,6 @@ void countLoops(char* filename, int loop_length, vec_3D& grid){
         xyz.push_back(z);
         loop.push_back(xyz);
         xyz.clear();
-        //std::cout << x << " " << y << " " << z << std::endl;
       }
 
 
@@ -146,8 +137,6 @@ void countLoops(char* filename, int loop_length, vec_3D& grid){
       //Get d(CA_CA), d(CB_CB), truncate, convert to int
       float CA_CA = ca_ca_dist(loop);
       float CB_CB = cb_cb_dist(loop);
-
-      //Use values to find bucket, store count of each loop type for now
 
       //Truncate floats
       char sz[64];
@@ -193,7 +182,7 @@ This function takes a 3D array of loop counts, and uses it to construct a 4D vec
 for keeping track of loop writes to a random access file with records of variable length
 that contain rows of int(pdbselect fileposition), int(loop length)
 
-After writing to loop file, a random access file version of the 4D vector is written.
+After writing to loop file, a random access file version of the 3D vector is written.
 */
 
 void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& grid){
@@ -290,7 +279,6 @@ void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& g
         infile.read( (char*)& residue_number, sizeof(int) );
         infile.read( (char*)& chain, sizeof(char) );
 
-
         //Get coordinates for this residue, push back into loop
         std::vector<float> xyz;
         for (int i = 0; i < 5; ++i){
@@ -306,7 +294,6 @@ void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& g
           xyz.clear();
           //std::cout << x << " " << y << " " << z << std::endl;
         }
-
 
       ++counter;
       } //End of current loop read
@@ -338,15 +325,10 @@ void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& g
 
         //Find correct spot for loop, write pdbselect position (absolute_position, bytes) and length (in residues)
         if (ca_index < 500 && cb_index < 500){
-          //std::cout << "Writing " << absolute_position << " " << loop_length << " at " << write_progress[ca_index][cb_index][loop_length-1][2] + write_progress[ca_index][cb_index][loop_length-1][1] * 8 << std::endl;
-
-
           loop_out.seekp( write_progress[ca_index][cb_index][loop_length-1][2] + (write_progress[ca_index][cb_index][loop_length-1][1] * 8) );
           loop_out.write( (const char*)& absolute_position, sizeof(unsigned int) );
           loop_out.write( (const char*)& loop_length, sizeof(int) );
           ++write_progress[ca_index][cb_index][loop_length-1][1];
-
-
         }
 
 
@@ -409,7 +391,6 @@ void readLoops(char* loopfile){
   while (infile.tellg() < size){
     infile.read( (char*)& pdb_position, sizeof(unsigned int) );
     infile.read( (char*)& length, sizeof(int) );
-
     std::cout << "Loop of length " << length << " at pdbselect: " << pdb_position << std::endl;
     ++counter;
   }
@@ -681,7 +662,6 @@ void continuous_query_helper(std::vector<std::vector<std::vector<float> > >& res
     for (unsigned int i = 0; i < loop_pointers.size(); ++i){
       //std::cout << "Loop at " << loop_pointers[i][0] << " of length " << loop_pointers[i][1] << std::endl;
       pdb_in.seekg(loop_pointers[i][0]);
-      //std::cout << "----------------- Loop " << i + 1 << " -----------------" << std::endl;
       for (int j = 0; j < loop_pointers[i][1]; ++ j){
 
         pdb_in.read( pdb_code, (sizeof(char) * 4) );
@@ -690,7 +670,6 @@ void continuous_query_helper(std::vector<std::vector<std::vector<float> > >& res
         pdb_in.read( (char*)& chain, sizeof(char) );
         pdb_code[4] = '\0';
 
-        //std::cout << "PDB " << pdb_code << "  Residue " << aa << residue_number << " Chain " << chain << std::endl;
         loop_residues.push_back(aa);
 
         for (int i = 0; i < 5; ++i){
@@ -703,8 +682,6 @@ void continuous_query_helper(std::vector<std::vector<std::vector<float> > >& res
           xyz.push_back(z);
           loop.push_back(xyz);
           xyz.clear();
-
-          //std::cout << x << " " << y << " " << z << std::endl;
         }
 
 
@@ -737,6 +714,5 @@ void continuous_query_helper(std::vector<std::vector<std::vector<float> > >& res
       }
 
       return results;
-
 
     }
