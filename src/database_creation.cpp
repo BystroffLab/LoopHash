@@ -2,18 +2,22 @@
 #include "protein.h"
 #include "loop_generation.h"
 
+/*
+This file is used to construct
+-pdbselect database
+-the loop database of pointers to the pdb select
+ file
+-the 3D grid file that points to the loop database. The dimensions of the 3D
+grid are 500 x 500 x 20 (x2)
+
+Could be a little more user friendly
+*/
+
 int main(int argc, char* argv[]){
-  /*
-  This file is used to construct
-  -pdbselect database
-  -the loop database of pointers to the pdb select
-   file
-  -the 3D grid file that points to the loop database. The dimensions of the 3D
-  grid are 500 x 500 x 20 (x2)
-  */
 
   /*
-  //Construct pdbselect database (used in conjunction with process.sh)
+
+  //Construct pdbselect database (Run with with process.sh)
   if (argc == 4 && argv[2] == "pdbselect"){
     try{
 
@@ -32,8 +36,12 @@ int main(int argc, char* argv[]){
 
   }
 
-  //Construct loop pointers and 3D grid file
 */
+
+/*
+
+This block constructs the other database files. Run this after protein random access file is constructed
+
     vec_3D grid(500, std::vector<std::vector<int> >(500, std::vector<int>(20, 0) ) );
 
     //Count loops of each length
@@ -45,56 +53,8 @@ int main(int argc, char* argv[]){
     writeLoops(argv[1], argv[2], argv[3], grid);
     return 0;
 
+*/
 
-
-
-
-  /*
-  This try/catch block was used to construct the PDBselect random access file.
-  Run process.h with the executable compiled with this block uncommented in the
-  folder containing all pdbs to be indexed.
-
-  try{
-
-  Protein pdb_select(argv[1]);
-  assert( pdb_select.getCoordinates().size() % 5 == 0);
-  pdb_select.RAF_out("test.goo");
-  //test_raf_in("test.goo");
-
-  }
-
-  catch (int i){
-
-    std::cout << "Couldn't process " << argv[1] << std::endl;
-    return 0;
-
-  }
-
-  */
-
-
-
-
-
-  /*
-  //Generate grid used to count loops/write loops
-
-  vec_3D grid(500, std::vector<std::vector<int> >(500, std::vector<int>(10, 0) ) );
-
-  //Count loops of each length
-  countLoops(argv[1], 4, grid);
-  countLoops(argv[1], 5, grid);
-  countLoops(argv[1], 6, grid);
-  countLoops(argv[1], 7, grid);
-
-  //Write loops counted in the grid
-  writeLoops(argv[1], "db.loop", "grid.arr", grid);
-  */
-
-
-
-
-
-  std::cout << "Finished processing." << std::endl << std::endl;
+  std::cout << "Finished processing " << argv[1] << std::endl << std::endl;
   return 0;
 }

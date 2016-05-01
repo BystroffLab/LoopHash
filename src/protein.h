@@ -62,6 +62,7 @@ float standard_deviation(const std::vector<float>& values, float mean);
 
 //Output
 void PDB_out (const std::vector< std::vector<float> >& loop, const std::vector<char> residues, char* filename );
+void PDB_out (const std::vector< std::vector<float> >& loop, char* filename );
 
 
 #endif
