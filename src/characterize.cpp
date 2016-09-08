@@ -141,7 +141,7 @@ void excelOutput(char* outfile, std::vector<std::pair<int, float> > statistics){
   //Try to open file for output (append onto end of file)
   std::ofstream out_file(outfile, std::fstream::app);
   if ( !out_file.good() ) {
-    std::cerr << "Can't open " << out_file << " to write." << std::endl;
+    std::cerr << "Can't open " << outfile << " to write." << std::endl;
     exit(1);
   }
 
@@ -159,7 +159,7 @@ void excelOutput(char* outfile, std::vector<std::pair<int, float> > statistics, 
   //Try to open file for output (append onto end of file)
   std::ofstream out_file(outfile, std::fstream::app);
   if ( !out_file.good() ) {
-    std::cerr << "Can't open " << out_file << " to write." << std::endl;
+    std::cerr << "Can't open " << outfile << " to write." << std::endl;
     exit(1);
   }
 
