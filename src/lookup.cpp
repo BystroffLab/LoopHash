@@ -16,9 +16,9 @@ Lookup::Lookup(Protein* protein, int start, int end){
   filter = false;        sequence_identity_cutoff = 0.0;
 
   //Default database files
-  char* db1 = "pdbselect.prot"; database_files.push_back(db1);
-  char* db2 = "dbv2.loop"; database_files.push_back(db2);
-  char* db3 = "gridv2.arr"; database_files.push_back(db3);
+  char* db1 = (char*)"pdblist.dat"; database_files.push_back(db1);
+  char* db2 = (char*)"looplist.dat"; database_files.push_back(db2);
+  char* db3 = (char*)"grid.dat"; database_files.push_back(db3);
 
 }
 

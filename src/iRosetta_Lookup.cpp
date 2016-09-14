@@ -8,7 +8,7 @@
 int main(int argc, char* argv[]){
 
   //Command line arguments should be in the format:
-  //  ./iRosetta_Lookup.exe   input.pdb   pdbselect.prot    db.Loop   grid.arr    anchor start    anchor end
+  //  ./iRosetta_Lookup.exe   [1]input.pdb   [2]pdblist.dat [3]looplist.dat [4]grid.arr  [5]anchor start  [6]anchor end
 
   //Parse input protein, grab loop
   Protein protein(argv[1]);
