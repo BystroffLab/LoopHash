@@ -1,0 +1,6 @@
+# Compiled Source #
+*.exe
+*.o
+
+# Database files #
+*.dat

@@ -21,9 +21,6 @@ int main(int argc, char* argv[]){
 
 
   //Output all loops
-  //Consider doing a rough graft onto the scaffold and passing whole proteins for local energy minimization
-  //Also consider using C++ Rosetta libraries for minimization and just pass finished models back to iRosetta?
-  //Might not be possible
   std::list<Loop> results = lookup.getResults();
   std::list<Loop>::iterator itr = results.begin();
   for (int i = 1; itr != results.end(); ++itr, ++i){

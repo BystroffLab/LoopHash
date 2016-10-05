@@ -1,12 +1,12 @@
-Loop database generation and query tools
-By Will Hooper 2016
+#Loop database generation and query tools
+#By Will Hooper 2016
 Dependencies: None if not using with InteractiveROSETTA, requires InteractiveROSETTA and PyRosetta packages if so
 
 
 ------------------------------------------------
 
 
-Compilation:
+#Compilation:
 
    -Database Creation-
    make database
@@ -29,14 +29,17 @@ Compilation:
 ------------------------------------------------
 
 
-Making database files from a folder of .pdb files:
+#Making database files from a folder of .pdb files:
   -compile database creation files using make database
   -move [database_creation.exe, pdblist_creation.exe, make_db.sh]
   -run make_db.sh
     -outputs three files
 
-Querying database:
+#Querying database:
   -compile lookup using make lookup
   -place [pdblist.dat, looplist.dat, grid.dat] in same folder as iRosetta_Lookup.exe
     ./iRosetta_Lookup.exe (Protein scaffold pdb) pdblist.dat looplist.dat grid.dat (anchor start) (anchor end)
   -outputs a list of matches, do whatever you want with them, anything! I don't care.
+
+
+http://www.bioinfo.rpi.edu/bystrc/
