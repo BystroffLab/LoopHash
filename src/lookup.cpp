@@ -11,7 +11,7 @@ Lookup::Lookup(Protein* protein, int start, int end){
   scaffold_start = start; scaffold_end = end;
   //Some default parameters
   length_range[0] = 3;   length_range[1] = 19;
-  min = 100;             max = 1000;
+  min_results = 10;      max_results = 25;
   rmsd_cutoff = 1.5;     sequence_filter = "";
   filter = false;        sequence_identity_cutoff = 0.0;
 
@@ -51,100 +51,127 @@ static bool rmsdSort(const Loop& a, const Loop& b){
   return (a.rmsd < b.rmsd);
 }
 
-//Perform a search
+// Perform a search
 void Lookup::run(){
   float CA_CA = ca_ca_dist(original_loop);
   float CB_CB = cb_cb_dist(original_loop);
 
-  //Pull Loops
-  for (int loop_length = length_range[0]; loop_length < length_range[1] + 1; ++loop_length){
-    runHelper(CA_CA, CB_CB, loop_length);
-  }
 
-
-  //If we're not above the minimum, search around CA and CB axes to find more results
-
-
-  //Superpose, check rmsd. If it's below the cutoff, throw out loop. Otherwise, record rmsd in struct
-  bool decrement = false;
-  std::list<Loop>::iterator loops_itr;
-  for (loops_itr = results.begin(); loops_itr != results.end(); ++loops_itr){
-    if (decrement == true && loops_itr != results.begin()) {
-       --loops_itr;
-       decrement = false;
+  // Run lookup until we have the minimum number of results asked for
+  // Vary the CA-CA and CB-CB distances by .1 angstroms until we have enough results or we hit the end of the database
+  float change = 0.0;
+  bool firstRun = true;
+  while(int(results.size()) < min_results){
+    //Pull Loops
+    if (firstRun){
+      for (int loop_length = length_range[0]; loop_length < length_range[1] + 1; ++loop_length){
+        runHelper(CA_CA, CB_CB, loop_length);
+      }
     }
-    //Collect anchor atoms for superposition
-    std::vector<std::vector<float> > list_superposer_in;
-    std::vector<std::vector<float> > original_superposer_in;
+    else{
+      for (int loop_length = length_range[0]; loop_length < length_range[1] + 1; ++loop_length){
+        // Diagonals
+        runHelper(CA_CA + change, CB_CB + change, loop_length);
+        runHelper(CA_CA - change, CB_CB - change, loop_length);
+        runHelper(CA_CA + change, CB_CB - change, loop_length);
+        runHelper(CA_CA - change, CB_CB + change, loop_length);
 
-    //Get first residue for loop list
-    for (unsigned int j = 0; j < 5; ++j){
-      list_superposer_in.push_back(loops_itr->coordinates[j]);
-    }
-    //Get last residue for loop list (can't do both at once because loops not always same size)
-    for (unsigned int j = loops_itr->coordinates.size() - 5; j < loops_itr->coordinates.size() ; ++j){
-      list_superposer_in.push_back(loops_itr->coordinates[j]);
-    }
+        // Across axes
+        runHelper(CA_CA + change, CB_CB,          loop_length);
+        runHelper(CA_CA,          CB_CB + change, loop_length);
+        runHelper(CA_CA - change, CB_CB         , loop_length);
+        runHelper(CA_CA         , CB_CB - change, loop_length);
+      }
 
-    //Get first residue for original loop
-    for (unsigned int j = 0; j < 5; ++j){
-      original_superposer_in.push_back(original_loop[j]);
     }
-    //Get last residue for original loop
-    for (unsigned int j = original_loop.size() - 5; j < original_loop.size() ; ++j){
-      original_superposer_in.push_back(original_loop[j]);
-    }
-
-    //Sanity check
-    assert(list_superposer_in.size() == 10);
-    assert(original_superposer_in.size() == 10);
-
-    //Superpose
-    std::pair< std::vector< std::vector<float> > , std::vector<float> > transformation;
-    transformation = superimposer(original_superposer_in, list_superposer_in, 10);
-    for (unsigned int j = 0; j < list_superposer_in.size(); ++j){
-      superimposer_move(list_superposer_in[j], transformation.first, transformation.second);
-    }
-    for (unsigned int j = 0; j < loops_itr->coordinates.size(); ++j){
-      superimposer_move(loops_itr->coordinates[j], transformation.first, transformation.second);
-    }
-
-    //Record RMSD, throw out if below cutoff
-    loops_itr->rmsd = RMSD(original_superposer_in, list_superposer_in);
-    if ( loops_itr->rmsd > rmsd_cutoff && loops_itr != results.begin() ){
-      loops_itr = results.erase(loops_itr);
-      --loops_itr;
-      continue;
-    }
-    else if ( loops_itr->rmsd > rmsd_cutoff && loops_itr == results.begin() ){
-      //Avoid decrementing off the beginning of the list
-      loops_itr = results.erase(loops_itr);
-      decrement = true;
-      continue;
-    }
+    firstRun = false;
 
 
-    //Check collisions, throw out if there are any
-    if ( scaffold->is_collision(loops_itr->coordinates, scaffold_start, scaffold_end) ){
-      if (loops_itr != results.begin()){
+
+    // Superpose, check rmsd. If it's below the cutoff, throw out loop. Otherwise, record rmsd in struct
+    bool decrement = false;
+    std::list<Loop>::iterator loops_itr;
+    for (loops_itr = results.begin(); loops_itr != results.end(); ++loops_itr){
+      if (decrement == true && loops_itr != results.begin()) {
+         --loops_itr;
+         decrement = false;
+      }
+      //Collect anchor atoms for superposition
+      std::vector<std::vector<float> > list_superposer_in;
+      std::vector<std::vector<float> > original_superposer_in;
+
+      //Get first residue for loop list
+      for (unsigned int j = 0; j < 5; ++j){
+        list_superposer_in.push_back(loops_itr->coordinates[j]);
+      }
+      //Get last residue for loop list (can't do both at once because loops not always same size)
+      for (unsigned int j = loops_itr->coordinates.size() - 5; j < loops_itr->coordinates.size() ; ++j){
+        list_superposer_in.push_back(loops_itr->coordinates[j]);
+      }
+
+      //Get first residue for original loop
+      for (unsigned int j = 0; j < 5; ++j){
+        original_superposer_in.push_back(original_loop[j]);
+      }
+      //Get last residue for original loop
+      for (unsigned int j = original_loop.size() - 5; j < original_loop.size() ; ++j){
+        original_superposer_in.push_back(original_loop[j]);
+      }
+
+      //Sanity check
+      assert(list_superposer_in.size() == 10);
+      assert(original_superposer_in.size() == 10);
+
+      //Superpose
+      std::pair< std::vector< std::vector<float> > , std::vector<float> > transformation;
+      transformation = superimposer(original_superposer_in, list_superposer_in, 10);
+      for (unsigned int j = 0; j < list_superposer_in.size(); ++j){
+        superimposer_move(list_superposer_in[j], transformation.first, transformation.second);
+      }
+      for (unsigned int j = 0; j < loops_itr->coordinates.size(); ++j){
+        superimposer_move(loops_itr->coordinates[j], transformation.first, transformation.second);
+      }
+
+      //Record RMSD, throw out if below cutoff
+      loops_itr->rmsd = RMSD(original_superposer_in, list_superposer_in);
+      if ( loops_itr->rmsd > rmsd_cutoff && loops_itr != results.begin() ){
         loops_itr = results.erase(loops_itr);
         --loops_itr;
         continue;
       }
-      else if(loops_itr == results.begin()){
+      else if ( loops_itr->rmsd > rmsd_cutoff && loops_itr == results.begin() ){
+        //Avoid decrementing off the beginning of the list
         loops_itr = results.erase(loops_itr);
         decrement = true;
         continue;
       }
+
+
+      //Check collisions, throw out if there are any
+      if ( scaffold->is_collision(loops_itr->coordinates, scaffold_start, scaffold_end) ){
+        if (loops_itr != results.begin()){
+          loops_itr = results.erase(loops_itr);
+          --loops_itr;
+          continue;
+        }
+        else if(loops_itr == results.begin()){
+          loops_itr = results.erase(loops_itr);
+          decrement = true;
+          continue;
+        }
+      }
+
     }
+
+  // Start to modify search
+  change += 0.1;
+
 
   }
 
-
-
-
   //Sort by rmsd (lowest first)
   results.sort(rmsdSort);
+
 
 
   return;
