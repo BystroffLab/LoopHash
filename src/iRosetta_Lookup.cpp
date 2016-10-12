@@ -9,6 +9,7 @@ int main(int argc, char* argv[]){
 
   //Command line arguments should be in the format:
   //  ./iRosetta_Lookup.exe   [1]input.pdb   [2]pdblist.dat [3]looplist.dat [4]grid.arr  [5]anchor start  [6]anchor end
+  //  [7]Min length           [8]Max length  [9]Min results [10]Max results
 
   //Parse input protein, grab loop
   Protein protein(argv[1]);
@@ -17,6 +18,7 @@ int main(int argc, char* argv[]){
   //Create lookup object, change defaults if necessary
   Lookup lookup(protein_pointer, atoi(argv[5]), atoi(argv[6]));
   lookup.setDB(argv[2], argv[3], argv[4]);
+  lookup.setRange(atoi(argv[7]), atoi(argv[8]));
   lookup.run();
 
 
@@ -30,7 +32,7 @@ int main(int argc, char* argv[]){
     std::string loop_id = ss.str();
     std::string fout = "loopout_" + loop_id + ".pdb";
     char* filename = const_cast<char*>( fout.c_str() );
-    PDB_out(itr->coordinates, itr->sequence, filename);
+    PDB_out(itr->coordinates, filename);
 
   }
 

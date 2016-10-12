@@ -464,10 +464,10 @@ void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
 
     //xyz coordinates
     std::stringstream xyz;
-    xyz.precision(4);
-    xyz << std::setw(7) << loop[i][0] << " " << std::setw(7) << loop[i][1] << " " << std::setw(7) << loop[i][2];
+    xyz.precision(3);
+    xyz << std::fixed << std::right << std::setw(7) << loop[i][0] << " " << std::setw(7) << loop[i][1] << " " << std::setw(7) << loop[i][2];
     std::string xyz_str = xyz.str();
-    line.replace(30, 20, xyz_str);
+    line.replace(31, 20, xyz_str);
 
     //Atom counting
     int sn = i + 1;
@@ -478,6 +478,7 @@ void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
     }
 
     line.replace(17, 3, "ALA");
+
 
     //No convenient way to convert ints to strings for serial number, residue number
     std::stringstream ss1;
@@ -495,9 +496,8 @@ void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
     residue_no = whitespace + residue_no;
     line.replace(6, 5, serial_no);
     line.replace(22, 4, residue_no);
-    line.replace(75, 2, elements[i%5]);
+    line.replace(77, 2, elements[i%5]);
 
-    //std::cout << line << std::endl;
     out_file << line << std::endl;
   }//End of ATOM records
 
