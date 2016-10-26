@@ -164,7 +164,9 @@ void Lookup::run(){
     }
 
   // Start to modify search
+  // TODO: Make sure we don't fall off the edge of the database
   change += 0.1;
+
 
 
   }
