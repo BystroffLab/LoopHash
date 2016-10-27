@@ -1,5 +1,6 @@
 #include "protein.h"
 
+//TODO: add try/catch blocks to substr calls that check token OR test for 'END' as well as 'END   '
 //------------------Constructor------------------//
 Protein::Protein(const char* filename){
   //Initialize hardcoded alanine for adding beta carbon to glycine
@@ -159,9 +160,19 @@ Protein::Protein(const char* filename){
           token = line.substr(0,6);
         }
 
-        //Skip past the rest of the associated atoms in the residue
+        // Skip past the rest of the associated atoms in the residue
         if ( pdb_str.eof() ){ break; }
-        int tmp_residue_number = atoi( line.substr(23,3).c_str() );
+
+        // Hopefully this catches the case where the last line is only 3 characters
+        int tmp_residue_number = 0;
+
+        try{
+          tmp_residue_number = atoi( line.substr(23,3).c_str() );
+        }
+        catch(std::out_of_range& exception){
+          break;
+        }
+
         while (tmp_residue_number == residue_number && (token != "HETATM" && token != "TER   " && token != "END   ") ){
           std::getline(pdb_str, line);
           if ( pdb_str.eof() || line.size() < 6){ break; }
