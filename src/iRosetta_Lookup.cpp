@@ -19,6 +19,8 @@ int main(int argc, char* argv[]){
   Lookup lookup(protein_pointer, atoi(argv[5]), atoi(argv[6]));
   lookup.setDB(argv[2], argv[3], argv[4]);
   lookup.setRange(atoi(argv[7]), atoi(argv[8]));
+  lookup.setMin(atoi(argv[9]));
+  lookup.setMax(atoi(argv[10]));
   lookup.run();
 
 
@@ -38,6 +40,6 @@ int main(int argc, char* argv[]){
 
 
   //This should be the only cout in the entire lookup, necessary for iRosetta to figure out how many results were found
-  std::cout << lookup.size();
+  std::cout << results.size();
   return 0;
 }

@@ -37,8 +37,8 @@ public:
   std::vector<std::vector<float> > getOriginal() const{ return original_loop; }
 
   //Setters
-  void setMin(int x){ min = x; }
-  void setMax(int x){ max = x; }
+  void setMin(int x){ min_results = x; }
+  void setMax(int x){ max_results = x; }
   void setCutoff(float x){ rmsd_cutoff = x; }
   void setDB(char* pdb, char* loops, char* grid);
   void setSequence(std::string s, float identity);
@@ -57,8 +57,8 @@ private:
   //Various parameters for lookup
   int scaffold_start;
   int scaffold_end;
-  int min;                          //Minimum number of loops to try
-  int max;                          //Max number of loops to try
+  int min_results;                          //Minimum number of loops to try
+  int max_results;                          //Max number of loops to try
   int length_range[2];              //Range of lengths to try
   float rmsd_cutoff;                //Highest RMSD to accept
   bool filter;                      //Are we filtering by sequence?
