@@ -16,10 +16,16 @@ int main(int argc, char* argv[]){
   Protein* protein_pointer = &protein;
 
   //Create lookup object, change defaults if necessary
+  int min = atoi(argv[9]);
+  if (min == 0){
+    min = 1;
+  }
+
+
   Lookup lookup(protein_pointer, atoi(argv[5]), atoi(argv[6]));
   lookup.setDB(argv[2], argv[3], argv[4]);
   lookup.setRange(atoi(argv[7]), atoi(argv[8]));
-  lookup.setMin(atoi(argv[9]));
+  lookup.setMin(min);
   lookup.setMax(atoi(argv[10]));
   lookup.run();
 
