@@ -56,6 +56,9 @@ void Lookup::run(){
   float CA_CA = ca_ca_dist(original_loop);
   float CB_CB = cb_cb_dist(original_loop);
 
+  // If CA_CA or CB_CB are too big, the database is too small so just quit
+  if (CA_CA > 49.9 || CB_CB > 49.9){ return; }
+
 
   // Run lookup until we have the minimum number of results asked for
   // Vary the CA-CA and CB-CB distances by .1 angstroms until we have enough results or we hit the end of the database
@@ -166,6 +169,9 @@ void Lookup::run(){
   // Start to modify search
   // TODO: Make sure we don't fall off the edge of the database
   change += 0.1;
+  if (CA_CA + change > 49.9 || CB_CB - change < 0.1 || CB_CB + change > 49.9 || CA_CA - change < 0.1){
+    return;
+  }
 
 
 
