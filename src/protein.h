@@ -41,7 +41,6 @@ public:
 private:
   //Representation
   std::string identifier;
-  int length;
   std::vector<std::vector<float> > backbone_coordinates;
   std::vector<char> residue_type;
   std::vector<int> atom_residue_numbering;

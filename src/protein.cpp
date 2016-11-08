@@ -264,7 +264,7 @@ float RMSD(const std::vector< std::vector<float> >& loop1, const std::vector< st
   std::vector< std::vector<float> > loop1_copy = loop1;
   std::vector< std::vector<float> > loop2_copy = loop2;
   unsigned int n = loop1.size();
-  float sum;
+  float sum = 0.0;
 
   //Center molecules
   std::vector<float> loop1_center(3, 0.0);
