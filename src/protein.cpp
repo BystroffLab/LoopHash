@@ -202,7 +202,7 @@ Protein::Protein(const char* filename){
 
 //------------------Accessors------------------//
 std::vector<std::vector<float> > Protein::getLoop(int start, int end) const{
-  if ( start > this->size() || start + end > this->size() ){
+  if ( start > this->size() || end > this->size() ){
     throw 0;
   }
   std::vector<std::vector<float> > return_loop(backbone_coordinates.begin() + ((start - 1)*5), backbone_coordinates.begin() + (end*5));

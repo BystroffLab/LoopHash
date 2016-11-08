@@ -14,6 +14,13 @@ int main(int argc, char* argv[]){
   //Parse input protein, grab loop
   Protein protein(argv[1]);
   Protein* protein_pointer = &protein;
+  std::vector<std::vector<float>> coords = protein.getCoordinates();
+
+  /*
+  std::string dout = "debug_out.pdb";
+  char* debug_out = const_cast<char*>( dout.c_str() );
+  PDB_out(coords, debug_out);
+  */
 
   //Create lookup object, change defaults if necessary
   int min = atoi(argv[9]);
@@ -21,13 +28,13 @@ int main(int argc, char* argv[]){
     min = 1;
   }
 
-
   Lookup lookup(protein_pointer, atoi(argv[5]), atoi(argv[6]));
   lookup.setDB(argv[2], argv[3], argv[4]);
   lookup.setRange(atoi(argv[7]), atoi(argv[8]));
   lookup.setMin(min);
   lookup.setMax(atoi(argv[10]));
   lookup.run();
+
 
 
   //Output all loops
