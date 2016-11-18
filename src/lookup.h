@@ -37,9 +37,12 @@ public:
   std::vector<std::vector<float> > getOriginal() const{ return original_loop; }
 
   //Setters
-  void setMin(int x){ min_results = x; }
+  void setMin(int x){
+    if (x <= 0) { min_results = 1; }
+    else { min_results = x;  }
+  }
   void setMax(int x){ max_results = x; }
-  void setCutoff(float x){ rmsd_cutoff = x; }
+  void setCutoff(float x){ duplicate_threshold = x; }
   void setDB(char* pdb, char* loops, char* grid);
   void setSequence(std::string s, float identity);
   void setRange(int min_length, int max_length);
@@ -57,16 +60,21 @@ private:
   //Various parameters for lookup
   int scaffold_start;
   int scaffold_end;
-  int min_results;                          //Minimum number of loops to try
-  int max_results;                          //Max number of loops to try
+  int min_results;                  //Minimum number of loops to try
+  int max_results;                  //Max number of loops to try
   int length_range[2];              //Range of lengths to try
   float rmsd_cutoff;                //Highest RMSD to accept
+  float duplicate_threshold;         //RMSD threshold for duplicates
   bool filter;                      //Are we filtering by sequence?
   std::string sequence_filter;      //Sequence filter
   float sequence_identity_cutoff;   //Minimum identity
 
   //Run helper
   void runHelper(float CA_CA, float CB_CB, int loop_length);
+
+  //Check if result is similar to a result we already got from a query
+  bool isDuplicate(const Loop &candidate);
+  void cleanDuplicates();
 
 };
 

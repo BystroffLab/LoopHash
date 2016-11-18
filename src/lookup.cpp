@@ -14,6 +14,7 @@ Lookup::Lookup(Protein* protein, int start, int end){
   min_results = 10;      max_results = 25;
   rmsd_cutoff = 1.5;     sequence_filter = "";
   filter = false;        sequence_identity_cutoff = 0.0;
+  duplicate_threshold = 1.0;
 
   //Default database files
   char* db1 = (char*)"pdblist.dat"; database_files.push_back(db1);
@@ -92,6 +93,7 @@ void Lookup::run(){
 
 
     // Superpose, check rmsd. If it's below the cutoff, throw out loop. Otherwise, record rmsd in struct
+    // TODO: fix hacky decrement bool. Instead, don't always increment with each iteration
     bool decrement = false;
     std::list<Loop>::iterator loops_itr;
     for (loops_itr = results.begin(); loops_itr != results.end(); ++loops_itr){
@@ -150,7 +152,7 @@ void Lookup::run(){
       }
 
 
-      //Check collisions, throw out if there are any
+      // Check collisions, throw out if there are any
       if ( scaffold->is_collision(loops_itr->coordinates, scaffold_start, scaffold_end) ){
         if (loops_itr != results.begin()){
           loops_itr = results.erase(loops_itr);
@@ -164,10 +166,13 @@ void Lookup::run(){
         }
       }
 
+
     }
 
+  // Prune duplicates
+  cleanDuplicates();
+
   // Start to modify search
-  // TODO: Make sure we don't fall off the edge of the database
   change += 0.1;
   if (CA_CA + change > 49.9 || CB_CB - change < 0.1 || CB_CB + change > 49.9 || CA_CA - change < 0.1){
     return;
@@ -304,21 +309,63 @@ void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length){
 
     } //End loop
 
-    //std::cout << "Real dCA: " << ca_ca_dist(loop) << " dCA Query: " << CA_CA << std::endl;
-    //std::cout << "Real dCB: " << cb_cb_dist(loop) << " dCA Query: " << CB_CB << std::endl;
     Loop return_loop;
     return_loop.coordinates = loop;
     return_loop.sequence = loop_residues;
     results.push_back(return_loop);
-    //results.push_back(loop);
-    //residues.push_back(loop_residues);
+
     loop_residues.clear();
     loop.clear();
 
-    //std::cout << std::endl << std::endl;
 
   }
 
   return;
+
+}
+
+
+
+// Check if a given loop is similar to any of the reuslts
+bool Lookup::isDuplicate(const Loop &candidate){
+  std::list<Loop>::iterator result_itr;
+  for (result_itr = results.begin(); result_itr != results.end(); ++result_itr){
+    // Loops already aren't the same if they have different lengths (in residues), and a loop shouldn't be compared to itself
+    if (result_itr->coordinates.size() == candidate.coordinates.size() && &candidate != &(*result_itr)){
+      // This is post-superimposition so theoretically we shouldn't need to superimpose here
+      float rmsd = RMSD(result_itr->coordinates, candidate.coordinates);
+      if (rmsd < duplicate_threshold){
+        return true;
+      }
+      else{
+        std::cout << "RMSD: " << rmsd << std::endl;
+      }
+    }
+  }
+
+  return false;
+}
+
+
+
+// Clean out duplicates using pairwise comparisons
+void Lookup::cleanDuplicates(){
+  std::list<Loop>::iterator itr;
+
+  for (itr = results.begin(); itr != results.end(); /*Do nothing*/ ){
+    if (isDuplicate(*itr)){
+      itr = results.erase(itr);
+      std::cout << "Cleaned duplicate" << std::endl;
+    }
+    else{
+      ++itr;
+    }
+
+  }
+  return;
+
+
+
+
 
 }

@@ -14,27 +14,38 @@ int main(int argc, char* argv[]){
   //Parse input protein, grab loop
   Protein protein(argv[1]);
   Protein* protein_pointer = &protein;
-  std::vector<std::vector<float>> coords = protein.getCoordinates();
 
   /*
+  --DEBUGGING--
+  std::vector<std::vector<float>> coords = protein.getCoordinates();
   std::string dout = "debug_out.pdb";
   char* debug_out = const_cast<char*>( dout.c_str() );
   PDB_out(coords, debug_out);
   */
 
-  //Create lookup object, change defaults if necessary
-  int min = atoi(argv[9]);
-  if (min == 0){
-    min = 1;
+  // Are all the command line parameters there?
+  if (argc < 11){
+    std::cout << 0;
+    std::cerr << "Error: Not enough command line arguments!";
+    return 1;
   }
 
+
+  // Optional RMSD threshold
+  float threshold = 1.0;
+  if (argc == 12){
+    threshold = atoi(argv[11]);
+  }
+
+
+  // Create lookup, change default params
   Lookup lookup(protein_pointer, atoi(argv[5]), atoi(argv[6]));
   lookup.setDB(argv[2], argv[3], argv[4]);
   lookup.setRange(atoi(argv[7]), atoi(argv[8]));
-  lookup.setMin(min);
+  lookup.setMin(atoi(argv[9]));
   lookup.setMax(atoi(argv[10]));
+  lookup.setCutoff(threshold);
   lookup.run();
-
 
 
   //Output all loops
@@ -44,15 +55,13 @@ int main(int argc, char* argv[]){
     //output named so that irosetta can pick up results
     std::stringstream ss;
     ss << i;
-    std::string loop_id = ss.str();
-    std::string fout = "loopout_" + loop_id + ".pdb";
+    std::string fout = "loopout_" + ss.str() + ".pdb";
     char* filename = const_cast<char*>( fout.c_str() );
     PDB_out(itr->coordinates, filename);
-
   }
 
 
-  //This should be the only cout in the entire lookup, necessary for iRosetta to figure out how many results were found
+  //This should be the only stdout in the lookup, necessary for iRosetta to figure out how many results were output
   std::cout << results.size();
   return 0;
 }
