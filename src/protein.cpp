@@ -527,15 +527,16 @@ out_file.close();
 
 //------------------        Collision detection         ------------------//
 //Detect if any loop atoms (excluding anchors) are within 4A of non-bonded atoms, return true if collision
+//TODO: Less leniency around the edges
 bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, int start, int end) const{
   bool collision = false;
 
   //Check all residues before insertion
   //For each backbone atom i before anchor
-  for (int i = 0; i < (start * 5) - 10; ++i){
+  for (int i = 0; i < (start * 5) - 5; ++i){
     //For each insertion atom j (excluding anchors)
-    for (unsigned int j = 5; j < insertion.size() - 5; ++j){
-      if ( atom_dist(insertion[j], backbone_coordinates[i]) < 5.0){
+    for (unsigned int j = 5; j < insertion.size() -5; ++j){
+      if ( atom_dist(insertion[j], backbone_coordinates[i]) < 4.0){
         collision = true;
         //std::cout << "Collision! Atoms are " << atom_dist(insertion[j], backbone_coordinates[i]) << "apart." << std::endl;
         break;
@@ -546,10 +547,10 @@ bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, i
 
   //Check all residues after insertion
 
-  for (unsigned int i = (end * 5) + 10; i < backbone_coordinates.size(); ++i){
+  for (unsigned int i = (end * 5) + 5; i < backbone_coordinates.size(); ++i){
     //For each insertion atom j (excluding anchors)
-    for (unsigned int j = 5; j < insertion.size() - 5; ++j){
-      if ( atom_dist(insertion[j], backbone_coordinates[i]) < 3.5){
+    for (unsigned int j = 0; j < insertion.size(); ++j){
+      if ( atom_dist(insertion[j], backbone_coordinates[i]) < 4.0){
         collision = true;
         //std::cout << "After-loop collision! Atoms are " << atom_dist(insertion[j], backbone_coordinates[i]) << "apart." << std::endl;
         break;

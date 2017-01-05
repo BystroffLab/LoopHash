@@ -332,13 +332,10 @@ bool Lookup::isDuplicate(const Loop &candidate){
   for (result_itr = results.begin(); result_itr != results.end(); ++result_itr){
     // Loops already aren't the same if they have different lengths (in residues), and a loop shouldn't be compared to itself
     if (result_itr->coordinates.size() == candidate.coordinates.size() && &candidate != &(*result_itr)){
-      // This is post-superimposition so theoretically we shouldn't need to superimpose here
+      // This is post-superimposition so *theoretically* we shouldn't need to superimpose here
       float rmsd = RMSD(result_itr->coordinates, candidate.coordinates);
       if (rmsd < duplicate_threshold){
         return true;
-      }
-      else{
-        std::cout << "RMSD: " << rmsd << std::endl;
       }
     }
   }
@@ -355,7 +352,7 @@ void Lookup::cleanDuplicates(){
   for (itr = results.begin(); itr != results.end(); /*Do nothing*/ ){
     if (isDuplicate(*itr)){
       itr = results.erase(itr);
-      std::cout << "Cleaned duplicate" << std::endl;
+      //std::cout << "Cleaned duplicate" << std::endl;
     }
     else{
       ++itr;

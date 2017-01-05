@@ -1,6 +1,6 @@
 
 
-CC=g++
+CC= g++
 CFLAGS= -Wall -std=c++11
 
 all:

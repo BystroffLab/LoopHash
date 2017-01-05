@@ -2,7 +2,7 @@
 #include "loop_generation.h"
 
 // Constructs the other database files given processed list of proteins
-// [0]exe [1]infile(.pdblist) [2]outfile(.looplist) [3]outfile(.3dgrid)
+// [0]exe [1]infile(pdblist.dat) [2]outfile(looplist.dat) [3]outfile(grid.dat)
 
 int main(int argc, char* argv[]){
 
