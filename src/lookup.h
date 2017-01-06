@@ -3,7 +3,7 @@
 #define lookup_h
 
 #include <iostream>
-#include <sstream>
+#include <stdlib.h>
 #include <iomanip>
 #include <fstream>
 #include <cassert>
@@ -43,13 +43,15 @@ public:
   }
   void setMax(int x){ max_results = x; }
   void setCutoff(float x){ duplicate_threshold = x; }
-  void setDB(char* pdb, char* loops, char* grid);
   void setSequence(std::string s, float identity);
   void setRange(int min_length, int max_length);
 
   //Miscellaneous
   bool parse(char* input_file);
   void run();
+  void writeLog();
+  void logmsg(std::string msg){ logdump.push_back(msg); }
+  void iRosettaOutput();
 
 private:
   //Lookup results, original loop, database files
@@ -76,7 +78,7 @@ private:
   //Run helper
   void runHelper(float CA_CA, float CB_CB, int loop_length);
 
-  //Check if result is similar to a result we already got from a query
+  //Check if result is similar to a result we already stored
   bool isDuplicate(const Loop &candidate);
   void cleanDuplicates();
 

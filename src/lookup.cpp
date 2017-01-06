@@ -1,6 +1,7 @@
 #include "lookup.h"
 
-Lookup::Lookup(char* input_file){
+Lookup::Lookup(char* input_file)
+{
   //Set default parameters
   length_range[0] = 3;   length_range[1] = 19;
   min_results = 10;      max_results = 25;
@@ -10,32 +11,49 @@ Lookup::Lookup(char* input_file){
   symmetry = 1;
 
   //Default files
-  char* db1 = (char*)"pdblist.dat"; database_files.push_back(db1);
-  char* db2 = (char*)"looplist.dat"; database_files.push_back(db2);
-  char* db3 = (char*)"grid.dat"; database_files.push_back(db3);
-  logfile = (char*)"indel_log.txt";
+  char* db1 = strdup("pdblist.dat");  database_files.push_back(db1);
+  char* db2 = strdup("looplist.dat"); database_files.push_back(db2);
+  char* db3 = strdup("grid.dat");     database_files.push_back(db3);
+  logfile = strdup("indel_log.txt");
 
-  //Parse input, TODO: check success
+  //Parse input, try to find the specified anchors
   parse(input_file);
-  original_loop = scaffold.getLoop(scaffold_start, scaffold_end);
+
+  try{
+    original_loop = scaffold.getLoop(scaffold_start, scaffold_end);
+  }
+  catch(int){
+    logmsg("Couldn't find the requested anchor points. Check inputs and try again.\n");
+    writeLog();
+    exit(EXIT_FAILURE);
+  }
 
 }
-//--------Setters--------//
 
-void Lookup::setDB(char* pdb, char* loops, char* grid){
-  database_files.clear();
-  database_files.push_back(pdb);
-  database_files.push_back(loops);
-  database_files.push_back(grid);
-}
 
-void Lookup::setSequence(std::string s, float identity){
+
+
+
+
+
+
+/*
+    Set a sequence to filter for. Not implemented (yet?)
+*/
+void Lookup::setSequence(std::string s, float identity)
+{
   assert(identity <= 1);
   sequence_filter = s;
   sequence_identity_cutoff = identity;
 }
 
-void Lookup::setRange(int min_length, int max_length){
+
+
+/*
+    Set range of loops to look for. If inputs are wonky just use default settings
+*/
+void Lookup::setRange(int min_length, int max_length)
+{
   if (min_length > max_length) { return; }
   if (min_length < 3 || max_length > 19) { return; }
   length_range[0] = min_length;
@@ -43,13 +61,22 @@ void Lookup::setRange(int min_length, int max_length){
 }
 
 
-//--------Miscellaneous--------//
-static bool rmsdSort(const Loop& a, const Loop& b){
+
+/*
+    Comparison used by the sort function
+*/
+static bool rmsdSort(const Loop& a, const Loop& b)
+{
   return (a.rmsd < b.rmsd);
 }
 
-// Perform a search
-void Lookup::run(){
+
+
+/*
+    Perform a search with previously set parameters
+*/
+void Lookup::run()
+{
   float CA_CA = ca_ca_dist(original_loop);
   float CB_CB = cb_cb_dist(original_loop);
 
@@ -89,7 +116,6 @@ void Lookup::run(){
 
 
     // Superpose, check rmsd. If it's below the cutoff, throw out loop. Otherwise, record rmsd in struct
-    // TODO: fix hacky decrement bool. Instead, don't always increment with each iteration
     bool decrement = false;
     std::list<Loop>::iterator loops_itr;
     for (loops_itr = results.begin(); loops_itr != results.end(); ++loops_itr){
@@ -174,21 +200,21 @@ void Lookup::run(){
     return;
   }
 
-
-
   }
 
   //Sort by rmsd (lowest first)
   results.sort(rmsdSort);
 
-
-
   return;
-
 }
 
 
-void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length){
+
+/*
+    Run's helper function. Tries to abstract away some of the lower level code
+*/
+void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length)
+{
 
   //std::vector<std::vector<std::vector<float> > > return_val;
   //std::vector<std::vector<char> > residues;
@@ -322,26 +348,31 @@ void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length){
 
 
 
-// Check if a given loop is similar to any of the reuslts
-bool Lookup::isDuplicate(const Loop &candidate){
+/*
+    Check if a given loop is similar to any of the reuslts
+*/
+bool Lookup::isDuplicate(const Loop &candidate)
+{
   std::list<Loop>::iterator result_itr;
   for (result_itr = results.begin(); result_itr != results.end(); ++result_itr){
+
     // Loops already aren't the same if they have different lengths (in residues), and a loop shouldn't be compared to itself
     if (result_itr->coordinates.size() == candidate.coordinates.size() && &candidate != &(*result_itr)){
-      // This is post-superimposition so *theoretically* we shouldn't need to superimpose here
       float rmsd = RMSD(result_itr->coordinates, candidate.coordinates);
       if (rmsd < duplicate_threshold){
         return true;
       }
     }
-  }
 
+  }
   return false;
 }
 
 
 
-// Clean out duplicates using pairwise comparisons
+/*
+    Clean out duplicates using pairwise comparisons
+*/
 void Lookup::cleanDuplicates(){
   std::list<Loop>::iterator itr;
 
@@ -359,8 +390,12 @@ void Lookup::cleanDuplicates(){
 }
 
 
-// Parse input file
-bool Lookup::parse(char* input_file){
+
+/*
+   Parse top-level input file
+*/
+bool Lookup::parse(char* input_file)
+{
   std::ifstream in(input_file);
   std::string token = "";
 
@@ -375,7 +410,15 @@ bool Lookup::parse(char* input_file){
 
     if (token == "SCAFFOLD"){
       in >> token;
-      scaffold = Protein(token.c_str());
+      try{
+        scaffold = Protein(token.c_str());
+      }
+      catch(const std::exception& e){
+        logmsg("ERROR: Scaffold parsing failed with exception: ");
+        logmsg(e.what());
+        writeLog();
+        exit(EXIT_FAILURE);
+      }
     }
 
     else if (token == "ANCHORS"){
@@ -388,9 +431,10 @@ bool Lookup::parse(char* input_file){
 
     else if (token == "RANGE"){
       in >> token;
-      length_range[0] = atoi(token.c_str());
+      int range_min = atoi(token.c_str());
       in >> token;
-      length_range[1] = atoi(token.c_str());
+      int range_max = atoi(token.c_str());
+      setRange(range_min, range_max);
     }
 
     else if (token == "SYMMETRY"){
@@ -420,7 +464,7 @@ bool Lookup::parse(char* input_file){
 
     else if (token == "LOG"){
       in >> token;
-      logfile = (char*)token.c_str();
+      logfile = strdup(token.c_str());
     }
 
     else if (token == "PROTEIN"){
@@ -439,9 +483,49 @@ bool Lookup::parse(char* input_file){
       }
     }
 
+    //TODO: PRESERVESEQUENCE true/false, close file
 
   }
 
+  logmsg("Succesfully parsed input file \n");
   return true;
 
+}
+
+
+
+/*
+   Output lookup log file
+*/
+void Lookup::writeLog()
+{
+  std::ofstream out(logfile);
+  out << "---BEGIN INDEL LOG---\n \n";
+  for (unsigned int i = 0; i < logdump.size(); ++i){
+    out << logdump[i] << "\n";
+  }
+  out << "---END INDEL LOG---\n";
+}
+
+
+
+/*
+   Output lookup results, let IR daemon know how many loops were output
+*/
+void Lookup::iRosettaOutput()
+{
+  logmsg("Succesfully found " + std::to_string(results.size()) + " results. \n");
+  std::list<Loop>::iterator itr = results.begin();
+
+  for (int i = 1; itr != results.end(); ++itr, ++i){
+    // Output named so that irosetta can pick up results
+    std::string fout = "loopout_" + std::to_string(i) + ".pdb";
+    char* filename = strdup(fout.c_str());
+    PDB_out(itr->coordinates, filename);
+  }
+
+  // Let irosetta know how many results there were
+  logmsg("Succesfully wrote " + std::to_string(results.size()) + " results. \n");
+  std::cout << results.size();
+  return;
 }

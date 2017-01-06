@@ -49,9 +49,11 @@ private:
 
 };
 
+
+
 //Distance calculators
-float ca_ca_dist(std::vector< std::vector<float> > loop);
-float cb_cb_dist(std::vector< std::vector<float> > loop);
+float ca_ca_dist(const std::vector< std::vector<float> >& loop);
+float cb_cb_dist(const std::vector< std::vector<float> >& loop);
 float atom_dist(const std::vector<float>& atom1, const std::vector<float>& atom2);
 
 

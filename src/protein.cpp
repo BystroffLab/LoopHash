@@ -1,11 +1,21 @@
 #include "protein.h"
 
-//TODO: add try/catch blocks to substr calls that check token OR test for 'END' as well as 'END   '
 //------------------Constructor------------------//
-Protein::Protein(){
+
+/*
+    Default constructor only used for Lookup initialization!! Don't use otherwise
+*/
+Protein::Protein()
+{
   return;
 }
-Protein::Protein(const char* filename){
+
+
+/*
+    Parses a protein into a backbone representation
+*/
+Protein::Protein(const char* filename)
+{
   //Initialize hardcoded alanine for adding beta carbon to glycine
   //Taken from: https://www.nyu.edu/pages/mathmol/library/life/life1.html
   std::vector< std::vector<float> > alanine;
@@ -200,11 +210,15 @@ Protein::Protein(const char* filename){
     residue_type.pop_back();
   }
 
-//std::cout << "Finished" << std::endl;
 }//End Protein constructor
 
-//------------------Accessors------------------//
-std::vector<std::vector<float> > Protein::getLoop(int start, int end) const{
+
+
+/*
+    Pulls a const loop from a scaffold if anchors exist
+*/
+std::vector<std::vector<float> > Protein::getLoop(int start, int end) const
+{
   if ( start > this->size() || end > this->size() ){
     throw 0;
   }
@@ -213,9 +227,12 @@ std::vector<std::vector<float> > Protein::getLoop(int start, int end) const{
 }
 
 
-//------------------Measuring------------------//
 
-float ca_ca_dist(std::vector< std::vector<float> > loop){
+/*
+    Measures the distance in angstroms between two alpha carbons of a loop
+*/
+float ca_ca_dist(const std::vector< std::vector<float> >& loop)
+{
   if (loop.size() == 0 || loop.size() == 1){
     std::cerr << "ERROR: No loop to measure. " << std::endl;
     return 0;
@@ -230,7 +247,13 @@ float ca_ca_dist(std::vector< std::vector<float> > loop){
   return sqrt( x + y + z );
 }
 
-float cb_cb_dist(std::vector< std::vector<float> > loop){
+
+
+/*
+    Measures the distance in angstroms between two beta carbons of a loop
+*/
+float cb_cb_dist(const std::vector< std::vector<float> >& loop)
+{
   if (loop.size() == 0 || loop.size() == 1){
     std::cerr << "ERROR: No loop to measure. " << std::endl;
     return 0;
@@ -245,7 +268,13 @@ float cb_cb_dist(std::vector< std::vector<float> > loop){
   return sqrt( x + y + z );
 }
 
-float atom_dist(const std::vector<float>& atom1, const std::vector<float>& atom2){
+
+
+/*
+    Measures the distance between two points in 3D space (here, atoms)
+*/
+float atom_dist(const std::vector<float>& atom1, const std::vector<float>& atom2)
+{
   float x = pow( atom1[0] - atom2[0] , 2);
   float y = pow( atom1[1] - atom2[1] , 2);
   float z = pow( atom1[2] - atom2[2] , 2);
@@ -254,9 +283,11 @@ float atom_dist(const std::vector<float>& atom1, const std::vector<float>& atom2
 
 
 
-//------------------Statistics------------------//
-
-float RMSD(const std::vector< std::vector<float> >& loop1, const std::vector< std::vector<float> >& loop2){
+/*
+    Root mean square deviation
+*/
+float RMSD(const std::vector< std::vector<float> >& loop1, const std::vector< std::vector<float> >& loop2)
+{
   //Loops (or molecules) need to be of the same size
   if (loop1.size() != loop2.size()){
     std::cerr << "Loops not of the same size!" << std::endl;
@@ -304,7 +335,12 @@ float RMSD(const std::vector< std::vector<float> >& loop1, const std::vector< st
 }
 
 
-float standard_deviation(const std::vector<float>& values, float mean){
+
+/*
+    A standard standard deviation function
+*/
+float standard_deviation(const std::vector<float>& values, float mean)
+{
   float sum = 0;
 
   for (unsigned int i = 0; i < values.size(); ++i){
@@ -316,9 +352,11 @@ float standard_deviation(const std::vector<float>& values, float mean){
 
 
 
-//------------------Output ------------------//
-//When we actually have the sequence
-void PDB_out (const std::vector< std::vector<float> >& loop, const std::vector<char> residues, char* filename){
+/*
+    Outputs a PDB file with the original (non-alanine) sequence
+*/
+void PDB_out (const std::vector< std::vector<float> >& loop, const std::vector<char> residues, char* filename)
+{
   ////Initialize map of 3-letter amino acid codes to 1 letter codes
   std::map< char, std::string > amino_codes;
   amino_codes['A'] = "ALA";   amino_codes['C'] = "CYS";
@@ -427,12 +465,13 @@ void PDB_out (const std::vector< std::vector<float> >& loop, const std::vector<c
 out_file.close();
 }
 
+
+
 /*
-  When we don't have the sequence (or don't want to output the original sequence)
-  Rosetta automatically builds sidechains when you make a pose from a loop
-  Don't need that if you're designing a sequence onto a backbone
+  Outputs a loop with its native sequence replaced with alanines
 */
-void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
+void PDB_out (const std::vector< std::vector<float> >& loop, char* filename)
+{
 
   //Try to open file for writing
   std::ofstream out_file(filename, std::fstream::app);
@@ -528,10 +567,13 @@ void PDB_out (const std::vector< std::vector<float> >& loop, char* filename){
 out_file.close();
 }
 
-//------------------        Collision detection         ------------------//
-//Detect if any loop atoms (excluding anchors) are within 4A of non-bonded atoms, return true if collision
-//TODO: Less leniency around the edges
-bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, int start, int end) const{
+
+
+/*
+    Detect if a given loop is colliding with the scaffold protein
+*/
+bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, int start, int end) const
+{
   bool collision = false;
 
   //Check all residues before insertion
@@ -567,10 +609,11 @@ bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, i
 
 
 
-
-//------------------PDBselect random access file output ------------------//
-
-bool Protein::RAF_out(char* filename){
+/*
+    Appends a parsed protein backbone to a random access file (pdblist.dat)
+*/
+bool Protein::RAF_out(char* filename)
+{
   /*            FILE STRUCTURE
     Every residue record is 70 bytes:
     4 letter pdb code (4 bytes) - 1 letter aa code (1 byte) - int residue # (4 bytes) - char chain id (1 byte) - 10 bytes total
