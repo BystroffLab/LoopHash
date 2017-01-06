@@ -13,6 +13,7 @@
 #include <functional>
 #include <list>
 #include <string>
+#include <string.h>
 #include <vector>
 #include "superimposer.h"
 #include "protein.h"
@@ -28,8 +29,7 @@ class Lookup{
 public:
 
   //Constructors
-  Lookup();
-  Lookup(Protein* protein, int start, int end);
+  Lookup(char* input_file);
 
   //Getters
   int size() const{ return results.size(); }
@@ -48,14 +48,17 @@ public:
   void setRange(int min_length, int max_length);
 
   //Miscellaneous
+  bool parse(char* input_file);
   void run();
 
 private:
   //Lookup results, original loop, database files
   std::list<Loop> results;
-  Protein* scaffold;
+  Protein scaffold;
   std::vector<std::vector<float> > original_loop;
   std::vector<char*> database_files; // [0]=pdb select, [1]=loop db, [2]=grid
+  char* logfile;
+  std::vector<std::string> logdump;
 
   //Various parameters for lookup
   int scaffold_start;
@@ -68,6 +71,7 @@ private:
   bool filter;                      //Are we filtering by sequence?
   std::string sequence_filter;      //Sequence filter
   float sequence_identity_cutoff;   //Minimum identity
+  int symmetry;
 
   //Run helper
   void runHelper(float CA_CA, float CB_CB, int loop_length);

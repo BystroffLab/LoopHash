@@ -20,6 +20,7 @@
 class Protein {
 public:
   //Constructor
+  Protein();                      //NOTE: This is unsafe and only used for the lookup constructor
   Protein(const char* filename);
 
   //Accessors

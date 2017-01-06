@@ -1,29 +1,25 @@
 #include "lookup.h"
 
-Lookup::Lookup(){
-
-}
-
-Lookup::Lookup(Protein* protein, int start, int end){
-  //Pull original loop
-  original_loop = protein->getLoop(start, end);
-  scaffold = protein;
-  scaffold_start = start; scaffold_end = end;
-  //Some default parameters
+Lookup::Lookup(char* input_file){
+  //Set default parameters
   length_range[0] = 3;   length_range[1] = 19;
   min_results = 10;      max_results = 25;
   rmsd_cutoff = 1.5;     sequence_filter = "";
   filter = false;        sequence_identity_cutoff = 0.0;
   duplicate_threshold = 1.0;
+  symmetry = 1;
 
-  //Default database files
+  //Default files
   char* db1 = (char*)"pdblist.dat"; database_files.push_back(db1);
   char* db2 = (char*)"looplist.dat"; database_files.push_back(db2);
   char* db3 = (char*)"grid.dat"; database_files.push_back(db3);
+  logfile = (char*)"indel_log.txt";
+
+  //Parse input, TODO: check success
+  parse(input_file);
+  original_loop = scaffold.getLoop(scaffold_start, scaffold_end);
 
 }
-
-
 //--------Setters--------//
 
 void Lookup::setDB(char* pdb, char* loops, char* grid){
@@ -153,7 +149,7 @@ void Lookup::run(){
 
 
       // Check collisions, throw out if there are any
-      if ( scaffold->is_collision(loops_itr->coordinates, scaffold_start, scaffold_end) ){
+      if ( scaffold.is_collision(loops_itr->coordinates, scaffold_start, scaffold_end) ){
         if (loops_itr != results.begin()){
           loops_itr = results.erase(loops_itr);
           --loops_itr;
@@ -360,9 +356,92 @@ void Lookup::cleanDuplicates(){
 
   }
   return;
+}
 
 
+// Parse input file
+bool Lookup::parse(char* input_file){
+  std::ifstream in(input_file);
+  std::string token = "";
+
+  if (!in){
+    std::string errmsg = "Can't open master input file to read. \n";
+    logdump.push_back(errmsg);
+    throw 0;
+  }
+
+  while(!in.eof()){
+    in >> token;
+
+    if (token == "SCAFFOLD"){
+      in >> token;
+      scaffold = Protein(token.c_str());
+    }
+
+    else if (token == "ANCHORS"){
+      in >> token;
+      scaffold_start = atoi(token.c_str());
+      in >> token;
+      scaffold_end = atoi(token.c_str());
+
+    }
+
+    else if (token == "RANGE"){
+      in >> token;
+      length_range[0] = atoi(token.c_str());
+      in >> token;
+      length_range[1] = atoi(token.c_str());
+    }
+
+    else if (token == "SYMMETRY"){
+      in >> token;
+      symmetry = atoi(token.c_str());
+    }
+
+    else if (token == "DUPLICATECUTOFF"){
+      in >> token;
+      duplicate_threshold = atof(token.c_str());
+    }
+
+    else if (token == "PDBDATA"){
+      in >> token;
+      database_files[0] = strdup(token.c_str());
+    }
+
+    else if (token == "LOOPDATA"){
+      in >> token;
+      database_files[1] = strdup(token.c_str());
+    }
+
+    else if (token == "GRIDDATA"){
+      in >> token;
+      database_files[2] = strdup(token.c_str());
+    }
+
+    else if (token == "LOG"){
+      in >> token;
+      logfile = (char*)token.c_str();
+    }
+
+    else if (token == "PROTEIN"){
+      while (token != "DNA" || token != "END"){
+        // TODO: General "Molecule" class to read these coordinates into
+        // For now, just do nothing
+        in >> token;
+      }
+    }
+
+    else if (token == "DNA"){
+      while (token != "PROTEIN" || token != "END"){
+        // TODO: General "Molecule" class to read these coordinates into
+        // For now, just do nothing
+        in >> token;
+      }
+    }
 
 
+  }
+
+  return true;
 
 }

@@ -2,6 +2,9 @@
 
 //TODO: add try/catch blocks to substr calls that check token OR test for 'END' as well as 'END   '
 //------------------Constructor------------------//
+Protein::Protein(){
+  return;
+}
 Protein::Protein(const char* filename){
   //Initialize hardcoded alanine for adding beta carbon to glycine
   //Taken from: https://www.nyu.edu/pages/mathmol/library/life/life1.html
