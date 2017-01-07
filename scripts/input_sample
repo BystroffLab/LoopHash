@@ -1,0 +1,10 @@
+SYMMETRY 1
+SCAFFOLD 4dfr.pdb
+ANCHORS 80 85
+RANGE 5 15
+DUPLICATECUTOFF 1.0
+PDBDATA pdblist.dat
+LOOPDATA looplist.dat
+GRIDDATA grid.dat
+LOG indel_log.txt
+END

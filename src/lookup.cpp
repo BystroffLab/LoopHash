@@ -32,11 +32,6 @@ Lookup::Lookup(char* input_file)
 
 
 
-
-
-
-
-
 /*
     Set a sequence to filter for. Not implemented (yet?)
 */
@@ -50,14 +45,22 @@ void Lookup::setSequence(std::string s, float identity)
 
 
 /*
-    Set range of loops to look for. If inputs are wonky just use default settings
+    Set range of loops to look for. If inputs are wrong just use default settings
 */
 void Lookup::setRange(int min_length, int max_length)
 {
-  if (min_length > max_length) { return; }
-  if (min_length < 3 || max_length > 19) { return; }
+  if (min_length > max_length) {
+    logmsg("Specified minimum loop length larger than maximum. Using default lengths.. \n");
+    return;
+  }
+  if (min_length < 3 || max_length > 19) {
+    logmsg("Specified loop lengths outside database range. Using default lenghts..\n");
+    return;
+  }
   length_range[0] = min_length;
   length_range[1] = max_length;
+  logmsg("Set search for loops of length " + std::to_string(min_length) + " to " + std::to_string(max_length) + ".\n");
+  return;
 }
 
 
@@ -74,6 +77,7 @@ static bool rmsdSort(const Loop& a, const Loop& b)
 
 /*
     Perform a search with previously set parameters
+    TODO: Good lord please separate this into more readable chunks
 */
 void Lookup::run()
 {
@@ -81,7 +85,10 @@ void Lookup::run()
   float CB_CB = cb_cb_dist(original_loop);
 
   // If CA_CA or CB_CB are too big, the database is too small so just quit
-  if (CA_CA > 49.9 || CB_CB > 49.9){ return; }
+  if (CA_CA > 49.9 || CB_CB > 49.9){
+    logmsg("ERROR: Anchors are too far apart! Pick closer residues. \n");
+    return;
+  }
 
 
   // Run lookup until we have the minimum number of results asked for
@@ -393,6 +400,8 @@ void Lookup::cleanDuplicates(){
 
 /*
    Parse top-level input file
+   TODO: Compress PROTEIN/DNA to MOLECULE
+         PRESERVESEQUENCE
 */
 bool Lookup::parse(char* input_file)
 {
@@ -467,23 +476,13 @@ bool Lookup::parse(char* input_file)
       logfile = strdup(token.c_str());
     }
 
-    else if (token == "PROTEIN"){
-      while (token != "DNA" || token != "END"){
+    else if (token == "COMPLEX"){
+      while (token != "END"){
         // TODO: General "Molecule" class to read these coordinates into
         // For now, just do nothing
         in >> token;
       }
     }
-
-    else if (token == "DNA"){
-      while (token != "PROTEIN" || token != "END"){
-        // TODO: General "Molecule" class to read these coordinates into
-        // For now, just do nothing
-        in >> token;
-      }
-    }
-
-    //TODO: PRESERVESEQUENCE true/false, close file
 
   }
 
@@ -514,7 +513,7 @@ void Lookup::writeLog()
 */
 void Lookup::iRosettaOutput()
 {
-  logmsg("Succesfully found " + std::to_string(results.size()) + " results. \n");
+  logmsg("Found " + std::to_string(results.size()) + " loops. \n");
   std::list<Loop>::iterator itr = results.begin();
 
   for (int i = 1; itr != results.end(); ++itr, ++i){
@@ -525,7 +524,7 @@ void Lookup::iRosettaOutput()
   }
 
   // Let irosetta know how many results there were
-  logmsg("Succesfully wrote " + std::to_string(results.size()) + " results. \n");
+  logmsg("Succesfully wrote " + std::to_string(results.size()) + " loops. \n");
   std::cout << results.size();
   return;
 }
