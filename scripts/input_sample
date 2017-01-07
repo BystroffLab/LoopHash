@@ -1,10 +1,11 @@
 SYMMETRY 1
 SCAFFOLD 4dfr.pdb
 ANCHORS 80 85
+MIN_RESULTS 10
 RANGE 5 15
-DUPLICATECUTOFF 1.0
-PDBDATA pdblist.dat
-LOOPDATA looplist.dat
-GRIDDATA grid.dat
+DUPLICATE_CUTOFF 1.0
+PDB_DATA pdblist.dat
+LOOP_DATA looplist.dat
+GRID_DATA grid.dat
 LOG indel_log.txt
 END

@@ -33,6 +33,18 @@ Lookup::Lookup(char* input_file)
 
 
 /*
+    Set the minimum number of results to finish with
+*/
+void Lookup::setMin(int x){
+  if (x <= 0){
+     min_results = 1;
+  }
+  else {
+    min_results = x;
+  }
+}
+
+/*
     Set a sequence to filter for. Not implemented (yet?)
 */
 void Lookup::setSequence(std::string s, float identity)
@@ -403,14 +415,15 @@ void Lookup::cleanDuplicates(){
    TODO: Compress PROTEIN/DNA to MOLECULE
          PRESERVESEQUENCE
 */
-bool Lookup::parse(char* input_file)
+void Lookup::parse(char* input_file)
 {
   std::ifstream in(input_file);
   std::string token = "";
 
   if (!in){
     logmsg("Can't open input file: " + std::string(input_file) + "\n");
-    throw 0;
+    writeLog();
+    exit(EXIT_FAILURE);
   }
 
   while(!in.eof()){
@@ -437,6 +450,11 @@ bool Lookup::parse(char* input_file)
 
     }
 
+    else if (token == "MIN_RESULTS"){
+      in >> token;
+      setMin(atoi(token.c_str()));
+    }
+
     else if (token == "RANGE"){
       in >> token;
       int range_min = atoi(token.c_str());
@@ -450,22 +468,22 @@ bool Lookup::parse(char* input_file)
       symmetry = atoi(token.c_str());
     }
 
-    else if (token == "DUPLICATECUTOFF"){
+    else if (token == "DUPLICATE_CUTOFF"){
       in >> token;
       duplicate_threshold = atof(token.c_str());
     }
 
-    else if (token == "PDBDATA"){
+    else if (token == "PDB_DATA"){
       in >> token;
       database_files[0] = strdup(token.c_str());
     }
 
-    else if (token == "LOOPDATA"){
+    else if (token == "LOOP_DATA"){
       in >> token;
       database_files[1] = strdup(token.c_str());
     }
 
-    else if (token == "GRIDDATA"){
+    else if (token == "GRID_DATA"){
       in >> token;
       database_files[2] = strdup(token.c_str());
     }
@@ -486,7 +504,7 @@ bool Lookup::parse(char* input_file)
   }
 
   logmsg("Succesfully parsed input file \n");
-  return true;
+  return;
 
 }
 
