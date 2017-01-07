@@ -409,8 +409,7 @@ bool Lookup::parse(char* input_file)
   std::string token = "";
 
   if (!in){
-    std::string errmsg = "Can't open master input file to read. \n";
-    logdump.push_back(errmsg);
+    logmsg("Can't open input file: " + std::string(input_file) + "\n");
     throw 0;
   }
 
