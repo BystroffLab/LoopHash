@@ -5,12 +5,14 @@ Lookup::Lookup(char* input_file)
   //Set default parameters
   length_range[0] = 3;   length_range[1] = 19;
   min_results = 10;      max_results = 25;
-  rmsd_cutoff = 1.5;     sequence_filter = "";
+  rmsd_cutoff = 2.0;     sequence_filter = "";
   filter = false;        sequence_identity_cutoff = 0.0;
-  duplicate_threshold = 1.0;
-  symmetry = 1;
+  symmetry = 1;          duplicate_threshold = 1.0;
+  database_hits = 0;     colliding_loops = 0;
+  redundant_loops = 0;   bad_fits = 0;
+  preserve_sequence = false;
 
-  //Default files
+  //Default filenames
   char* db1 = strdup("pdblist.dat");  database_files.push_back(db1);
   char* db2 = strdup("looplist.dat"); database_files.push_back(db2);
   char* db3 = strdup("grid.dat");     database_files.push_back(db3);
@@ -21,6 +23,7 @@ Lookup::Lookup(char* input_file)
 
   try{
     original_loop = scaffold.getLoop(scaffold_start, scaffold_end);
+    original_loop_anchors = collectAnchors(original_loop);
   }
   catch(int){
     logmsg("Couldn't find the requested anchor points. Check inputs and try again.\n");
@@ -44,6 +47,8 @@ void Lookup::setMin(int x){
   }
 }
 
+
+
 /*
     Set a sequence to filter for. Not implemented (yet?)
 */
@@ -65,7 +70,7 @@ void Lookup::setRange(int min_length, int max_length)
     logmsg("Specified minimum loop length larger than maximum. Using default lengths.. \n");
     return;
   }
-  if (min_length < 3 || max_length > 19) {
+  else if (min_length < 3 || max_length > 19) {
     logmsg("Specified loop lengths outside database range. Using default lenghts..\n");
     return;
   }
@@ -78,7 +83,7 @@ void Lookup::setRange(int min_length, int max_length)
 
 
 /*
-    Comparison used by the sort function
+    Comparison used by std::sort
 */
 static bool rmsdSort(const Loop& a, const Loop& b)
 {
@@ -88,8 +93,7 @@ static bool rmsdSort(const Loop& a, const Loop& b)
 
 
 /*
-    Perform a search with previously set parameters
-    TODO: Good lord please separate this into more readable chunks
+    Perform a search with set parameters
 */
 void Lookup::run()
 {
@@ -102,13 +106,12 @@ void Lookup::run()
     return;
   }
 
-
-  // Run lookup until we have the minimum number of results asked for
   // Vary the CA-CA and CB-CB distances by .1 angstroms until we have enough results or we hit the end of the database
   float change = 0.0;
   bool firstRun = true;
   while(int(results.size()) < min_results){
-    //Pull Loops
+
+    //Pull raw loops from database
     if (firstRun){
       for (int loop_length = length_range[0]; loop_length < length_range[1] + 1; ++loop_length){
         runHelper(CA_CA, CB_CB, loop_length);
@@ -128,109 +131,46 @@ void Lookup::run()
         runHelper(CA_CA - change, CB_CB         , loop_length);
         runHelper(CA_CA         , CB_CB - change, loop_length);
       }
-
     }
     firstRun = false;
+    database_hits += results_buffer.size();
 
 
-
-    // Superpose, check rmsd. If it's below the cutoff, throw out loop. Otherwise, record rmsd in struct
-    bool decrement = false;
+    // Superimpose, record RMSD, clean out bad results
     std::list<Loop>::iterator loops_itr;
-    for (loops_itr = results.begin(); loops_itr != results.end(); ++loops_itr){
-      if (decrement == true && loops_itr != results.begin()) {
-         --loops_itr;
-         decrement = false;
-      }
-      //Collect anchor atoms for superposition
-      std::vector<std::vector<float> > list_superposer_in;
-      std::vector<std::vector<float> > original_superposer_in;
-
-      //Get first residue for loop list
-      for (unsigned int j = 0; j < 5; ++j){
-        list_superposer_in.push_back(loops_itr->coordinates[j]);
-      }
-      //Get last residue for loop list (can't do both at once because loops not always same size)
-      for (unsigned int j = loops_itr->coordinates.size() - 5; j < loops_itr->coordinates.size() ; ++j){
-        list_superposer_in.push_back(loops_itr->coordinates[j]);
-      }
-
-      //Get first residue for original loop
-      for (unsigned int j = 0; j < 5; ++j){
-        original_superposer_in.push_back(original_loop[j]);
-      }
-      //Get last residue for original loop
-      for (unsigned int j = original_loop.size() - 5; j < original_loop.size() ; ++j){
-        original_superposer_in.push_back(original_loop[j]);
-      }
-
-      //Sanity check
-      assert(list_superposer_in.size() == 10);
-      assert(original_superposer_in.size() == 10);
-
-      //Superpose
-      std::pair< std::vector< std::vector<float> > , std::vector<float> > transformation;
-      transformation = superimposer(original_superposer_in, list_superposer_in, 10);
-      for (unsigned int j = 0; j < list_superposer_in.size(); ++j){
-        superimposer_move(list_superposer_in[j], transformation.first, transformation.second);
-      }
-      for (unsigned int j = 0; j < loops_itr->coordinates.size(); ++j){
-        superimposer_move(loops_itr->coordinates[j], transformation.first, transformation.second);
-      }
-
-      //Record RMSD, throw out if below cutoff
-      loops_itr->rmsd = RMSD(original_superposer_in, list_superposer_in);
-      if ( loops_itr->rmsd > rmsd_cutoff && loops_itr != results.begin() ){
-        loops_itr = results.erase(loops_itr);
-        --loops_itr;
-        continue;
-      }
-      else if ( loops_itr->rmsd > rmsd_cutoff && loops_itr == results.begin() ){
-        //Avoid decrementing off the beginning of the list
-        loops_itr = results.erase(loops_itr);
-        decrement = true;
-        continue;
-      }
-
-
-      // Check collisions, throw out if there are any
-      if ( scaffold.is_collision(loops_itr->coordinates, scaffold_start, scaffold_end) ){
-        if (loops_itr != results.begin()){
-          loops_itr = results.erase(loops_itr);
-          --loops_itr;
-          continue;
-        }
-        else if(loops_itr == results.begin()){
-          loops_itr = results.erase(loops_itr);
-          decrement = true;
-          continue;
-        }
-      }
-
-
+    for (loops_itr = results_buffer.begin(); loops_itr != results_buffer.end(); ++loops_itr){
+      superimposeUsingAnchors(*loops_itr);
     }
 
-  // Prune duplicates
-  cleanDuplicates();
+    cleanBadFits(results_buffer);
+    cleanCollisions(results_buffer);
+    updateBuffer();
+    cleanDuplicates();
 
-  // Start to modify search
-  change += 0.1;
-  if (CA_CA + change > 49.9 || CB_CB - change < 0.1 || CB_CB + change > 49.9 || CA_CA - change < 0.1){
-    return;
+
+    // Start to modify search
+    change += 0.1;
+    if (CA_CA + change > 49.9 || CB_CB - change < 0.1 || CB_CB + change > 49.9 || CA_CA - change < 0.1){
+      logmsg("Exhausted the database. \n");
+      break;
+    }
+
   }
 
-  }
-
-  //Sort by rmsd (lowest first)
+  // Output some simple statistics about the search and quit
   results.sort(rmsdSort);
-
+  logmsg("                  Total database hits: " + std::to_string(database_hits)   + "\n");
+  logmsg("             Number of colliding hits: " + std::to_string(colliding_loops) + "\n");
+  logmsg("             Number of redundant hits: " + std::to_string(redundant_loops) + " \n");
+  logmsg("Number of bad fits (high anchor RMSD): " + std::to_string(bad_fits)        + "\n");
+  logmsg("               Total results returned: " + std::to_string(results.size())  + "\n");
   return;
 }
 
 
 
 /*
-    Run's helper function. Tries to abstract away some of the lower level code
+    Run's helper function. Abstracts away some of the ugly random access file operations
 */
 void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length)
 {
@@ -257,8 +197,10 @@ void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length)
   //Open grid file to find loop pointers in loop file
   std::ifstream grid_in(database_files[2], std::fstream::binary);
   if (!grid_in){
-    std::cerr << "Can't open " << database_files[2] << " to read." << std::endl;
-    throw 0;
+    std::string grid_err_msg(database_files[2]);
+    logmsg("Can't open " + grid_err_msg + " to read. \n");
+    writeLog();
+    exit(EXIT_FAILURE);
   }
 
   int number_of_loops;
@@ -278,8 +220,10 @@ void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length)
   //Open loop file to find pdbselect pointers
   std::ifstream loop_in(database_files[1], std::fstream::binary);
   if (!loop_in){
-    std::cerr << "Can't open " << database_files[1] << " to read." << std::endl;
-    throw 0;
+    std::string loop_err_msg(database_files[1]);
+    logmsg("Can't open " + loop_err_msg + " to read. \n");
+    writeLog();
+    exit(EXIT_FAILURE);
   }
 
   std::vector<std::vector<int> > loop_pointers;
@@ -304,8 +248,10 @@ void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length)
   //Open pdb file to get actual loops
   std::ifstream pdb_in(database_files[0], std::fstream::binary);
   if ( !pdb_in.good() ){
-    std::cerr << "Can't open " << database_files[0] << " to read." << std::endl;
-    throw 0;
+    std::string pdb_err_msg(database_files[0]);
+    logmsg("Can't open " + pdb_err_msg + " to read. \n");
+    writeLog();
+    exit(EXIT_FAILURE);
   }
 
   char pdb_code[5];
@@ -353,7 +299,7 @@ void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length)
     Loop return_loop;
     return_loop.coordinates = loop;
     return_loop.sequence = loop_residues;
-    results.push_back(return_loop);
+    results_buffer.push_back(return_loop);
 
     loop_residues.clear();
     loop.clear();
@@ -363,6 +309,21 @@ void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length)
 
   return;
 
+}
+
+
+
+/*
+    Copy over loops that aren't filtered out into final results vector, clear buffer
+*/
+void Lookup::updateBuffer()
+{
+  std::list<Loop>::iterator itr;
+  for (itr = results_buffer.begin(); itr != results_buffer.end(); ++itr){
+    results.push_back(*itr);
+  }
+  results_buffer.clear();
+  return;
 }
 
 
@@ -392,18 +353,17 @@ bool Lookup::isDuplicate(const Loop &candidate)
 /*
     Clean out duplicates using pairwise comparisons
 */
-void Lookup::cleanDuplicates(){
+void Lookup::cleanDuplicates()
+{
   std::list<Loop>::iterator itr;
-
   for (itr = results.begin(); itr != results.end(); /*Do nothing*/ ){
     if (isDuplicate(*itr)){
       itr = results.erase(itr);
-      //std::cout << "Cleaned duplicate" << std::endl;
+      ++redundant_loops;
     }
     else{
       ++itr;
     }
-
   }
   return;
 }
@@ -411,9 +371,89 @@ void Lookup::cleanDuplicates(){
 
 
 /*
+    Clean out loops that collide with the scaffold
+*/
+void Lookup::cleanCollisions(std::list<Loop>& results)
+{
+  std::list<Loop>::iterator itr;
+  for (itr = results.begin(); itr != results.end(); /*Do nothing*/){
+    if (scaffold.is_collision(itr->coordinates, scaffold_start, scaffold_end)){
+      itr = results.erase(itr);
+      ++colliding_loops;
+    }
+    else{
+      ++itr;
+    }
+  }
+}
+
+
+/*
+    Remove (superimposed) loops if their RMSD is above the cutoff
+*/
+void Lookup::cleanBadFits(std::list<Loop> &results)
+{
+  std::list<Loop>::iterator itr;
+  for (itr = results.begin(); itr != results.end(); /* Do nothing*/ ){
+    if (itr->rmsd > rmsd_cutoff) {
+      itr = results.erase(itr);
+      ++bad_fits;
+    }
+    else{
+      ++itr;
+    }
+  }
+  return;
+}
+
+
+
+/*
+    Collects anchor residue atom coordinates from a loop (minimum 2 residues)
+    Used for anchor superimposition
+*/
+std::vector<std::vector<float> >
+Lookup::collectAnchors(const std::vector<std::vector<float> > &loop)
+{
+  std::vector<std::vector<float> > anchors;
+  // N terminus
+  for (unsigned int i = 0; i < 5; ++i){
+    anchors.push_back(loop[i]);
+  }
+
+  //C terminus
+  for (unsigned int i = loop.size() - 5; i < loop.size(); ++i){
+    anchors.push_back(loop[i]);
+  }
+
+  return anchors;
+}
+
+
+
+/*
+    Superimposes database hit's anchors onto the scaffold target anchors and records anchor rmsd
+*/
+void Lookup::superimposeUsingAnchors(Loop &database_loop){
+  std::vector< std::vector<float> > database_loop_anchors = collectAnchors(database_loop.coordinates);
+
+  std::pair< std::vector< std::vector<float> > , std::vector<float> >
+  transformation = superimposer(original_loop_anchors, database_loop_anchors, 10);
+
+  for (unsigned int i = 0; i < database_loop.coordinates.size(); ++i){
+    superimposer_move(database_loop.coordinates[i], transformation.first, transformation.second);
+  }
+
+  database_loop.rmsd = RMSD(original_loop_anchors, collectAnchors(database_loop.coordinates));
+  return;
+}
+
+
+
+/*
    Parse top-level input file
-   TODO: Compress PROTEIN/DNA to MOLECULE
-         PRESERVESEQUENCE
+   TODO: Compress PROTEIN/DNA to COMPLEX
+         PRESERVE_SEQUENCE
 */
 void Lookup::parse(char* input_file)
 {
@@ -453,6 +493,16 @@ void Lookup::parse(char* input_file)
     else if (token == "MIN_RESULTS"){
       in >> token;
       setMin(atoi(token.c_str()));
+    }
+
+    else if (token == "PRESERVE_SEQUENCE"){
+      in >> token;
+      if (token == "false" || token == "False" || token == "FALSE"){
+        preserve_sequence = false;
+      }
+      else {
+        preserve_sequence = true;
+      }
     }
 
     else if (token == "RANGE"){
@@ -521,6 +571,8 @@ void Lookup::writeLog()
     out << logdump[i] << "\n";
   }
   out << "---END INDEL LOG---\n";
+  out.close();
+  return;
 }
 
 
@@ -530,14 +582,20 @@ void Lookup::writeLog()
 */
 void Lookup::iRosettaOutput()
 {
-  logmsg("Found " + std::to_string(results.size()) + " loops. \n");
   std::list<Loop>::iterator itr = results.begin();
 
   for (int i = 1; itr != results.end(); ++itr, ++i){
     // Output named so that irosetta can pick up results
     std::string fout = "loopout_" + std::to_string(i) + ".pdb";
     char* filename = strdup(fout.c_str());
-    PDB_out(itr->coordinates, filename);
+
+    if (preserve_sequence){
+      PDB_out(itr->coordinates, itr->sequence, filename);
+    }
+    else {
+      PDB_out(itr->coordinates, filename);
+    }
+
   }
 
   // Let irosetta know how many results there were
