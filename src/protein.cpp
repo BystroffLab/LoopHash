@@ -571,40 +571,32 @@ out_file.close();
 
 /*
     Detect if a given loop is colliding with the scaffold protein
+    TODO: There should be early return statements in this
 */
 bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, int start, int end) const
 {
-  bool collision = false;
-
-  //Check all residues before insertion
-  //For each backbone atom i before anchor
+  
+  // Check all residues before insertion
+  // Skip residue before the anchor
   for (int i = 0; i < (start * 5) - 5; ++i){
-    //For each insertion atom j (excluding anchors)
     for (unsigned int j = 5; j < insertion.size() -5; ++j){
-      if ( atom_dist(insertion[j], backbone_coordinates[i]) < 4.0){
-        collision = true;
-        //std::cout << "Collision! Atoms are " << atom_dist(insertion[j], backbone_coordinates[i]) << "apart." << std::endl;
-        break;
+      if (atom_dist(insertion[j], backbone_coordinates[i]) < 4.0){
+        return true;
       }
     }
-    if (collision == true){ break; }
   }
 
-  //Check all residues after insertion
-
+  // Check all residues after insertion
+  // Skip the residue right after the anchor
   for (unsigned int i = (end * 5) + 5; i < backbone_coordinates.size(); ++i){
-    //For each insertion atom j (excluding anchors)
     for (unsigned int j = 0; j < insertion.size(); ++j){
-      if ( atom_dist(insertion[j], backbone_coordinates[i]) < 4.0){
-        collision = true;
-        //std::cout << "After-loop collision! Atoms are " << atom_dist(insertion[j], backbone_coordinates[i]) << "apart." << std::endl;
-        break;
+      if (atom_dist(insertion[j], backbone_coordinates[i]) < 4.0){
+        return true;
       }
     }
-    if (collision == true){ break; }
   }
 
-  return collision;
+  return false;
 }
 
 

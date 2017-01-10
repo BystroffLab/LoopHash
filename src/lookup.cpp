@@ -8,9 +8,9 @@ Lookup::Lookup(char* input_file)
   rmsd_cutoff = 2.0;     sequence_filter = "";
   filter = false;        sequence_identity_cutoff = 0.0;
   symmetry = 1;          duplicate_threshold = 1.0;
-  database_hits = 0;     colliding_loops = 0;
-  redundant_loops = 0;   bad_fits = 0;
-  preserve_sequence = false;
+  database_hits = 0;     scaffold_colliding_loops = 0;
+  redundant_loops = 0;   complex_colliding_loops = 0;
+  bad_fits = 0;          preserve_sequence = false;
 
   //Default filenames
   char* db1 = strdup("pdblist.dat");  database_files.push_back(db1);
@@ -160,7 +160,8 @@ void Lookup::run()
   // Output some simple statistics about the search and quit
   results.sort(rmsdSort);
   logmsg("                  Total database hits: " + std::to_string(database_hits)   + "\n");
-  logmsg("             Number of colliding hits: " + std::to_string(colliding_loops) + "\n");
+  logmsg("        Number of self-colliding hits: " + std::to_string(scaffold_colliding_loops) + "\n");
+  logmsg("     Number of complex-colliding hits: " + std::to_string(complex_colliding_loops) + "\n");
   logmsg("             Number of redundant hits: " + std::to_string(redundant_loops) + " \n");
   logmsg("Number of bad fits (high anchor RMSD): " + std::to_string(bad_fits)        + "\n");
   logmsg("               Total results returned: " + std::to_string(results.size())  + "\n");
@@ -379,7 +380,11 @@ void Lookup::cleanCollisions(std::list<Loop>& results)
   for (itr = results.begin(); itr != results.end(); /*Do nothing*/){
     if (scaffold.is_collision(itr->coordinates, scaffold_start, scaffold_end)){
       itr = results.erase(itr);
-      ++colliding_loops;
+      ++scaffold_colliding_loops;
+    }
+    else if (complex.isCollision(itr->coordinates)){
+      itr = results.erase(itr);
+      ++complex_colliding_loops;
     }
     else{
       ++itr;
@@ -474,7 +479,7 @@ void Lookup::parse(char* input_file)
       try{
         scaffold = Protein(token.c_str());
       }
-      catch(const std::exception& e){
+      catch(const std::exception &e){
         logmsg("ERROR: Scaffold parsing failed with exception: ");
         logmsg(e.what());
         writeLog();
@@ -544,10 +549,16 @@ void Lookup::parse(char* input_file)
     }
 
     else if (token == "COMPLEX"){
+      in >> token;
       while (token != "END"){
-        // TODO: General "Molecule" class to read these coordinates into
-        // For now, just do nothing
+        try{
+          complex.addMolecule(strdup(token.c_str()));
+        }
+        catch(const std::exception &e){
+          logmsg("ERROR: Couldn't parse Complex molecule " + token + "\n");
+        }
         in >> token;
+
       }
     }
 

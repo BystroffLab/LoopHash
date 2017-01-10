@@ -2,6 +2,9 @@
 #ifndef lookup_h
 #define lookup_h
 
+#include "superimposer.h"
+#include "protein.h"
+#include "complex.h"
 #include <iostream>
 #include <stdlib.h>
 #include <iomanip>
@@ -15,9 +18,6 @@
 #include <string>
 #include <string.h>
 #include <vector>
-#include "superimposer.h"
-#include "protein.h"
-
 
 
 
@@ -63,6 +63,7 @@ private:
   std::list<Loop> results;
   std::list<Loop> results_buffer;
   Protein scaffold;
+  Complex complex;
   std::vector<std::vector<float> > original_loop;
   std::vector<std::vector<float> > original_loop_anchors;
   std::vector<char*> database_files; // [0]=pdb select, [1]=loop db, [2]=grid
@@ -85,7 +86,8 @@ private:
 
   // Statistics to report at the end of the search
   unsigned int database_hits;
-  unsigned int colliding_loops;
+  unsigned int scaffold_colliding_loops;
+  unsigned int complex_colliding_loops;
   unsigned int redundant_loops;
   unsigned int bad_fits;
 

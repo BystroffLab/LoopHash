@@ -17,7 +17,7 @@ characterize:
 	$(CC) $(CFLAGS) characterize.cpp protein.cpp superimposer.cpp loop_generation.cpp -o characterize.exe
 
 lookup:
-	$(CC) $(CFLAGS) iRosetta_Lookup.cpp protein.cpp superimposer.cpp lookup.cpp loop_generation.cpp -o iRosetta_Lookup.exe
+	$(CC) $(CFLAGS) iRosetta_Lookup.cpp protein.cpp superimposer.cpp lookup.cpp complex.cpp -o iRosetta_Lookup.exe
 
 # Cleaning up executables
 lookup_clean:
