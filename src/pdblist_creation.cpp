@@ -3,14 +3,8 @@
 #include "loop_generation.h"
 
 /*
-This file is used to construct
--pdbselect database
--the loop database of pointers to the pdb select
- file
--the 3D grid file that points to the loop database. The dimensions of the 3D
-grid are 500 x 500 x 20 (x2)
-
-Could be a little more user friendly
+  This file is used to construct pdblist.dat
+  Appends to the end of the .dat file, run using shell script on folder of pdbs
 */
 
 int main(int argc, char* argv[]){
