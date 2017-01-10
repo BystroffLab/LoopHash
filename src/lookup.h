@@ -62,7 +62,7 @@ private:
   // Containers and database files
   std::list<Loop> results;
   std::list<Loop> results_buffer;
-  Protein scaffold;
+  std::vector<Protein> scaffold;
   Complex complex;
   std::vector<std::vector<float> > original_loop;
   std::vector<std::vector<float> > original_loop_anchors;

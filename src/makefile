@@ -1,7 +1,7 @@
 
 
 CC= g++
-CFLAGS= -Wall -std=c++11
+CFLAGS= -Wall -std=c++11 -O3
 
 all:
 	$(CC) $(CFLAGS) database_creation.cpp protein.cpp lookup.cpp superimposer.cpp loop_generation.cpp -o database_creation.exe

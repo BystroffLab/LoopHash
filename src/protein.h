@@ -3,6 +3,8 @@
 #ifndef protein_h
 #define protein_h
 
+#include "superimposer.h"
+#include <exception>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -15,25 +17,31 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "superimposer.h"
 
 class Protein {
 public:
   //Constructor
-  Protein();                      //NOTE: This is unsafe and only used for the lookup constructor
+  Protein();                      //NOTE: This is unsafe and just used when protein class is a member of another
   Protein(const char* filename);
+  Protein(const std::string &new_identifier,
+          const std::vector<std::vector<float> > &new_backbone_coordinates,
+          const std::vector<char> &new_residue_type,
+          const std::vector<int> &new_atom_residue_numbering,
+          const std::vector<char> &new_chain
+        );
 
-  //Accessors
+
+  //Getters
   std::vector<std::vector<float> > getCoordinates() const{ return backbone_coordinates; }
   std::vector<std::vector<float> > getLoop(int start, int end) const;
   int size() const{ return backbone_coordinates.size() / 5; }
   std::string getIdentifier() const{ return identifier; }
 
-  //Output
   bool RAF_out (char* filename);
-
-  //Collision detection
   bool is_collision (const std::vector<std::vector<float> >& insertion, int start, int end) const;
+  const std::vector<int> findChains();
+  std::vector<Protein> splitChains();
+
 
   //Some typedefs. ***USE BETTER NAMES FOR TYPEDEFS***
   typedef std::vector< std::vector<float> > matrix;
@@ -46,6 +54,9 @@ private:
   std::vector<char> residue_type;
   std::vector<int> atom_residue_numbering;
   std::vector<char> chain;
+  std::vector< std::vector<float> > alanine;
+
+  std::vector<std::vector<float> > glycineToAlanine(std::ifstream &in, std::string &line);
 
 };
 

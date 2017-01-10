@@ -1,6 +1,6 @@
 #include "protein.h"
 
-//------------------Constructor------------------//
+
 
 /*
     Default constructor only used for Lookup initialization!! Don't use otherwise
@@ -11,6 +11,26 @@ Protein::Protein()
 }
 
 
+
+/*
+    Copy constructor
+*/
+Protein::Protein(const std::string &new_identifier,
+                 const std::vector<std::vector<float> > &new_backbone_coordinates,
+                 const std::vector<char> &new_residue_type,
+                 const std::vector<int> &new_atom_residue_numbering,
+                 const std::vector<char> &new_chain)
+{
+  identifier = new_identifier;
+  backbone_coordinates = new_backbone_coordinates;
+  residue_type = new_residue_type;
+  atom_residue_numbering = new_atom_residue_numbering;
+  chain = new_chain;
+  return;
+}
+
+
+
 /*
     Parses a protein into a backbone representation
 */
@@ -18,7 +38,6 @@ Protein::Protein(const char* filename)
 {
   //Initialize hardcoded alanine for adding beta carbon to glycine
   //Taken from: https://www.nyu.edu/pages/mathmol/library/life/life1.html
-  std::vector< std::vector<float> > alanine;
   alanine.resize( 5, std::vector<float>(3, 0.0) );
   alanine[0][0] = 0.039; alanine[0][1] = -0.028; alanine[0][2] = 0.000;  //N
   alanine[1][0] = 1.499; alanine[1][1] = -0.043; alanine[1][2] = 0.000;  //CA
@@ -43,14 +62,16 @@ Protein::Protein(const char* filename)
   //Try to open the PDB file for reading
   std::ifstream pdb_str(filename);
   if (!pdb_str.good()) {
-    std::cerr << "Couldn't open " << filename << std::endl;
-    throw 0;
+    std::string err(filename);
+    throw std::runtime_error("Couldn't open PDB file " + err + "\n");
+    return;
   }
 
   //Check to make sure file isn't empty
   if ( pdb_str.peek() == std::ifstream::traits_type::eof() ){
-    std::cerr << "File " << filename << " is empty!" << std::endl;
-    throw 0;
+    std::string err(filename);
+    throw std::runtime_error("PDB file was empty!" + err + "\n");
+    return;
   }
 
   //EACH LINE IS 80 CHARACTERS
@@ -80,11 +101,14 @@ Protein::Protein(const char* filename)
   //If the first atom is CA, assume this file is only CAs
   std::string ca_test = line.substr(12, 3);
   if (ca_test == " CA"){
-    throw 0;
+    throw std::runtime_error("ERROR: Can't build backbone from file containing only alpha carbons! Quitting..");
+    return;
   }
 
   while ( !pdb_str.eof() && line.size() > 54 ){
-    if (token == "CONECT"){ break; }
+    if (token == "CONECT"){
+      break;
+    }
     //We don't care about HETATMs or TERs, skip to next line
     else if (token == "HETATM" || token == "TER   "){
       std::getline(pdb_str, line);
@@ -137,8 +161,8 @@ Protein::Protein(const char* filename)
             tmp_gly.push_back(new_CB);
           }
           catch(int){
-            std::cerr << "Superimposer failed at resiude " << residue_number << std::endl;
-            throw 0;
+            std::string err1(AA);
+            throw std::runtime_error("Superimposer failed at resiude " + err1 + " " + std::to_string(residue_number) + "\n");
           }
         }
 
@@ -571,11 +595,10 @@ out_file.close();
 
 /*
     Detect if a given loop is colliding with the scaffold protein
-    TODO: There should be early return statements in this
 */
 bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, int start, int end) const
 {
-  
+
   // Check all residues before insertion
   // Skip residue before the anchor
   for (int i = 0; i < (start * 5) - 5; ++i){
@@ -597,6 +620,71 @@ bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, i
   }
 
   return false;
+}
+
+
+
+/*
+    Finds and returns the indices where each chain starts.
+*/
+const std::vector<int> Protein::findChains()
+{
+  std::vector<int> chain_start_indices;
+
+  // Just return an empty vector if some idiot (read: me) accidently calls this on an empty protein
+  if (backbone_coordinates.size() == 0){
+    return chain_start_indices;
+  }
+
+  char current_chain = chain[0];
+  std::cout << "Start chain: " << current_chain << std::endl;
+  chain_start_indices.push_back(0);
+
+  for (unsigned int i = 1; i < backbone_coordinates.size(); ++i){
+    std::cout << chain[i];
+    if (chain[i] != current_chain){
+      chain_start_indices.push_back(i);
+      current_chain = chain[i];
+    }
+  }
+
+  return chain_start_indices;
+}
+
+
+/*
+    Splits a protein into its constituent chains.
+*/
+std::vector<Protein> Protein::splitChains()
+{
+  std::vector<Protein> return_chains;
+  std::vector<int> chain_start_indices = findChains();
+
+  // Looks messy but it's the easiest way to slice all the vectors
+  for (unsigned int i = 0; i < chain_start_indices.size(); ++i){
+    if (i == chain_start_indices.size() - 1){
+      std::string new_identifier;
+      new_identifier = identifier + "_" + chain[ chain_start_indices[i] ];
+      std::vector<std::vector<float> > new_backbone_coordinates( backbone_coordinates.begin() + chain_start_indices[i], backbone_coordinates.begin() + backbone_coordinates.size() );
+      std::vector<char> new_residue_type( residue_type.begin() + chain_start_indices[i], residue_type.begin() + residue_type.size() );
+      std::vector<int> new_atom_residue_numbering( atom_residue_numbering.begin() + chain_start_indices[i], atom_residue_numbering.begin() + atom_residue_numbering.size() );
+      std::vector<char> new_chain( chain.begin() + chain_start_indices[i], chain.begin() + chain.size() );
+      Protein tmp_protein(new_identifier, new_backbone_coordinates, new_residue_type, new_atom_residue_numbering, new_chain);
+      return_chains.push_back(tmp_protein);
+    }
+    else{
+      std::string new_identifier;
+      new_identifier = identifier + "_" + chain[ chain_start_indices[i] ];
+      std::vector<std::vector<float> > new_backbone_coordinates( backbone_coordinates.begin() + chain_start_indices[i], backbone_coordinates.begin() + chain_start_indices[i+1] );
+      std::vector<char> new_residue_type( residue_type.begin() + chain_start_indices[i], residue_type.begin() + chain_start_indices[i+1] );
+      std::vector<int> new_atom_residue_numbering( atom_residue_numbering.begin() + chain_start_indices[i], atom_residue_numbering.begin() + chain_start_indices[i+1]);
+      std::vector<char> new_chain( chain.begin() + chain_start_indices[i], chain.begin() + chain_start_indices[i+1] );
+      Protein tmp_protein(new_identifier, new_backbone_coordinates, new_residue_type, new_atom_residue_numbering, new_chain);
+      return_chains.push_back(tmp_protein);
+    }
+  }
+
+  return return_chains;
 }
 
 

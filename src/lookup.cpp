@@ -22,7 +22,7 @@ Lookup::Lookup(char* input_file)
   parse(input_file);
 
   try{
-    original_loop = scaffold.getLoop(scaffold_start, scaffold_end);
+    original_loop = scaffold[0].getLoop(scaffold_start, scaffold_end);
     original_loop_anchors = collectAnchors(original_loop);
   }
   catch(int){
@@ -300,6 +300,7 @@ void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length)
     Loop return_loop;
     return_loop.coordinates = loop;
     return_loop.sequence = loop_residues;
+    return_loop.rmsd = 0.0;
     results_buffer.push_back(return_loop);
 
     loop_residues.clear();
@@ -378,7 +379,7 @@ void Lookup::cleanCollisions(std::list<Loop>& results)
 {
   std::list<Loop>::iterator itr;
   for (itr = results.begin(); itr != results.end(); /*Do nothing*/){
-    if (scaffold.is_collision(itr->coordinates, scaffold_start, scaffold_end)){
+    if (scaffold[0].is_collision(itr->coordinates, scaffold_start, scaffold_end)){
       itr = results.erase(itr);
       ++scaffold_colliding_loops;
     }
@@ -477,7 +478,7 @@ void Lookup::parse(char* input_file)
     if (token == "SCAFFOLD"){
       in >> token;
       try{
-        scaffold = Protein(token.c_str());
+        scaffold.push_back(Protein(token.c_str()));
       }
       catch(const std::exception &e){
         logmsg("ERROR: Scaffold parsing failed with exception: ");
