@@ -37,7 +37,7 @@ bool Complex::isCollision(const std::vector< std::vector<float> > &loop)
 
   for (unsigned int i = 0; i < loop.size(); ++i){
     for (unsigned int j = 0; j < coordinates.size(); ++j){
-      if (atom_dist(loop[i], coordinates[j]) < 4.0){
+      if (atom_dist_fast(loop[i], coordinates[j]) < 16.0){
         return true;
       }
     }

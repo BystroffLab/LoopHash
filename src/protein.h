@@ -54,9 +54,13 @@ private:
   std::vector<char> residue_type;
   std::vector<int> atom_residue_numbering;
   std::vector<char> chain;
+
+  std::map< std::string, char > amino_codes;
   std::vector< std::vector<float> > alanine;
 
-  std::vector<std::vector<float> > glycineToAlanine(std::ifstream &in, std::string &line);
+  std::vector<std::string> collectAtoms(const char* filename);
+  void addBetaCarbon(std::vector<std::vector<float> > &residue);
+  void parseBackbone(const std::vector<std::string> &cleaned_file);
 
 };
 
@@ -66,7 +70,7 @@ private:
 float ca_ca_dist(const std::vector< std::vector<float> >& loop);
 float cb_cb_dist(const std::vector< std::vector<float> >& loop);
 float atom_dist(const std::vector<float>& atom1, const std::vector<float>& atom2);
-
+float atom_dist_fast(const std::vector<float>& atom1, const std::vector<float>& atom2);
 
 //Statistics
 float RMSD(const std::vector< std::vector<float> >& loop1, const std::vector< std::vector<float> >& loop2);

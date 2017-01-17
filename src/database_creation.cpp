@@ -15,7 +15,6 @@ int main(int argc, char* argv[]){
 
       //Write loops counted in the grid
       writeLoops(argv[1], argv[2], argv[3], grid);
-      return 0;
 
 
     std::cout << "Finished processing " << argv[1] << std::endl << std::endl;

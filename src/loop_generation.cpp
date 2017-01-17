@@ -355,7 +355,7 @@ void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& g
     for (int j = 0; j < 500; ++j){
       for (int k = 0; k < 20; ++k){
         if (write_progress[i][j][k][0] > 0){
-          std::cout << "Loops at" << i << " "<< j << " " << k << " " << write_progress[i][j][k][0] << "Pos: " <<  write_progress[i][j][k][2] << std::endl;
+          //std::cout << "Loops at" << i << " "<< j << " " << k << " " << write_progress[i][j][k][0] << "Pos: " <<  write_progress[i][j][k][2] << std::endl;
         }
         grid_out.write( (const char*)& write_progress[i][j][k][0], sizeof(int) );
         grid_out.write( (const char*)& write_progress[i][j][k][2], sizeof(int) );

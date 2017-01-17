@@ -30,6 +30,7 @@ Lookup::Lookup(char* input_file)
     writeLog();
     exit(EXIT_FAILURE);
   }
+  logmsg("Set anchors to " + std::to_string(scaffold_start) + " and " + std::to_string(scaffold_end) + "\n");
 
 }
 

@@ -46,7 +46,6 @@ Protein::Protein(const char* filename)
   alanine[4][0] = 1.956; alanine[4][1] = -0.866; alanine[4][2] = -1.217; //CB
 
   //Initialize map of 3-letter amino acid codes to 1 letter codes
-  std::map< std::string, char > amino_codes;
   amino_codes["ALA"] = 'A';   amino_codes["CYS"] = 'C';
   amino_codes["ASP"] = 'D';   amino_codes["GLU"] = 'E';
   amino_codes["PHE"] = 'F';   amino_codes["GLY"] = 'G';
@@ -58,32 +57,6 @@ Protein::Protein(const char* filename)
   amino_codes["THR"] = 'T';   amino_codes["VAL"] = 'V';
   amino_codes["TRP"] = 'W';   amino_codes["TYR"] = 'Y';
 
-
-  //Try to open the PDB file for reading
-  std::ifstream pdb_str(filename);
-  if (!pdb_str.good()) {
-    std::string err(filename);
-    throw std::runtime_error("Couldn't open PDB file " + err + "\n");
-    return;
-  }
-
-  //Check to make sure file isn't empty
-  if ( pdb_str.peek() == std::ifstream::traits_type::eof() ){
-    std::string err(filename);
-    throw std::runtime_error("PDB file was empty!" + err + "\n");
-    return;
-  }
-
-  //EACH LINE IS 80 CHARACTERS
-  //Get 4 letter identifier
-  std::string line;
-  std::string token(6 , ' ');
-  std::string AA(3 , ' ');
-  std::string chainID;
-  int residue_number;
-  std::vector<float> xyz(3);
-
-  //In the PDB Select data given, records start with ATOM, identifier is just the file name minus .pdb
   std::string tmp_identifier = filename;
   if (tmp_identifier.size() > 3){
     identifier = tmp_identifier.substr(0, 4);
@@ -92,149 +65,24 @@ Protein::Protein(const char* filename)
     identifier = "TEMP";
   }
 
-  //Skip ahead to the ATOM records (if necessary)
-  while (token != "ATOM  "){
-    std::getline(pdb_str, line);
-    token = line.substr(0,6);   //Record identifiers are 6 characters long
-  }
+  // Try to read in the pdb file
+  try{
+    parseBackbone(collectAtoms(filename));
 
-  //If the first atom is CA, assume this file is only CAs
-  std::string ca_test = line.substr(12, 3);
-  if (ca_test == " CA"){
-    throw std::runtime_error("ERROR: Can't build backbone from file containing only alpha carbons! Quitting..");
-    return;
   }
-
-  while ( !pdb_str.eof() && line.size() > 54 ){
-    if (token == "CONECT"){
-      break;
+  catch(const std::exception& e){
+    if (backbone_coordinates.size() % 5 == 0){
+      return;
     }
-    //We don't care about HETATMs or TERs, skip to next line
-    else if (token == "HETATM" || token == "TER   "){
-      std::getline(pdb_str, line);
-      token = line.substr(0,6);
+    else{
+      std::cout << "Exception: " << e.what() << std::endl;
+      throw std::runtime_error(e.what());
+      return;
     }
-
-    else if (token == "ATOM  "){
-      //Some terminal atoms end in OXT, ignore these
-      std::string oxt_test = line.substr(12, 3);
-      if (oxt_test == "OXT"){ break; }
-
-      //We want coordinates for backbone atoms N, CA, C, O, CB
-      AA = line.substr(17,3);
-      residue_number = atoi( line.substr(23,3).c_str() );
-      //std::cerr << " Residue: " << residue_number;
-      chainID = line.substr(21,1);
-
-      //Glycine doesn't have a beta carbon, superpose an alanine onto it to get CB coordinates
-      if (AA == "GLY"){
-
-        //Create temporary vector to hold glycine coordinates
-        std::vector< std::vector<float> > tmp_gly;
-        for (int i = 0; i < 4; ++i){
-          xyz[0] =  atof( line.substr(30,8).c_str() );
-          xyz[1] =  atof( line.substr(38,8).c_str() );
-          xyz[2] =  atof( line.substr(46,8).c_str() );
-          tmp_gly.push_back(xyz);
-          //Get next line
-          std::getline(pdb_str, line);
-          if ( pdb_str.eof() ){ break; }
-
-          //Some terminal atoms end in OXT, ignore these
-          std::string oxt_test = line.substr(12, 3);
-          if (oxt_test == "OXT"){ break; }
-          token = line.substr(0,6);
-        }
-
-
-        /*Superpose (N, CA, C, O) of Alanine onto Glycine to get rotation matrix,
-        translation vector. Apply these to Ala-CB and use coordinates as Gly-CB.
-        */
-        matrix tmp_ala(alanine.begin(), alanine.end() - 1);
-        std::vector<float> new_CB = alanine[4];
-        return_val transformation;
-
-        if (tmp_gly.size() == 4){
-          try{
-            transformation = superimposer(tmp_gly, tmp_ala, 4);
-            superimposer_move(new_CB, transformation.first, transformation.second);
-            tmp_gly.push_back(new_CB);
-          }
-          catch(int){
-            std::string err1(AA);
-            throw std::runtime_error("Superimposer failed at resiude " + err1 + " " + std::to_string(residue_number) + "\n");
-          }
-        }
-
-        //Add glycine to vector of peptide backbone_coordinates if all atoms are there
-        if (tmp_gly.size() == 5){
-          for (int i = 0; i < 5; ++i){
-            residue_type.push_back( amino_codes.find(AA)->second );
-            chain.push_back( chainID[0] );
-            atom_residue_numbering.push_back(residue_number);
-            backbone_coordinates.push_back(tmp_gly[i]);
-          }
-        }
-
-      } //End of residue
-
-      else{
-        //Grab this line and the next four atoms' xyz coordinates, building point vector and pushing info into vectors
-        for (int i = 0; i < 5; ++i){
-          xyz[0] =  atof( line.substr(30,8).c_str() );
-          xyz[1] =  atof( line.substr(38,8).c_str() );
-          xyz[2] =  atof( line.substr(46,8).c_str() );
-
-          residue_type.push_back( amino_codes.find(AA)->second );
-          chainID = line.substr(21,1);
-          chain.push_back( chainID[0] );
-          atom_residue_numbering.push_back(residue_number);
-          backbone_coordinates.push_back(xyz);
-
-          //Get next line
-          std::getline(pdb_str, line);
-          if ( pdb_str.eof() ){ break; }
-          token = line.substr(0,6);
-        }
-
-        // Skip past the rest of the associated atoms in the residue
-        if ( pdb_str.eof() ){ break; }
-
-        // Hopefully this catches the case where the last line is only 3 characters
-        int tmp_residue_number = 0;
-
-        try{
-          tmp_residue_number = atoi( line.substr(23,3).c_str() );
-        }
-        catch(std::out_of_range& exception){
-          break;
-        }
-
-        while (tmp_residue_number == residue_number && (token != "HETATM" && token != "TER   " && token != "END   ") ){
-          std::getline(pdb_str, line);
-          if ( pdb_str.eof() || line.size() < 6){ break; }
-          token = line.substr(0,6);
-          tmp_residue_number = atoi( line.substr(23,3).c_str() );
-        }
-      } //End of Residue
-    } //End of chain
-  } //End of ATOM record chain
-
-  pdb_str.close();
-
-  /*
-    Sometimes there's an extra atom or two from a residue not fully included in the chain.
-    Pop these off the back of the vector until only complete residues remain
-  */
-
-  while (backbone_coordinates.size() % 5 != 0){
-    backbone_coordinates.pop_back();
-    atom_residue_numbering.pop_back();
-    chain.pop_back();
-    residue_type.pop_back();
   }
 
-}//End Protein constructor
+  return;
+}
 
 
 
@@ -303,6 +151,20 @@ float atom_dist(const std::vector<float>& atom1, const std::vector<float>& atom2
   float y = pow( atom1[1] - atom2[1] , 2);
   float z = pow( atom1[2] - atom2[2] , 2);
   return sqrt( x + y + z );
+}
+
+
+
+/*
+    Measures the distance between two points in 3D space (here, atoms)
+    Skips square rooting to save some time (use squared distance when checking collisions)
+*/
+float atom_dist_fast(const std::vector<float>& atom1, const std::vector<float>& atom2)
+{
+  float x = (atom1[0] - atom2[0]) * (atom1[0] - atom2[0]);
+  float y = (atom1[1] - atom2[1]) * (atom1[1] - atom2[1]);
+  float z = (atom1[2] - atom2[2]) * (atom1[2] - atom2[2]);
+  return (x + y + z);
 }
 
 
@@ -603,7 +465,7 @@ bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, i
   // Skip residue before the anchor
   for (int i = 0; i < (start * 5) - 5; ++i){
     for (unsigned int j = 5; j < insertion.size() -5; ++j){
-      if (atom_dist(insertion[j], backbone_coordinates[i]) < 4.0){
+      if (atom_dist_fast(insertion[j], backbone_coordinates[i]) < 16.0){
         return true;
       }
     }
@@ -613,7 +475,7 @@ bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, i
   // Skip the residue right after the anchor
   for (unsigned int i = (end * 5) + 5; i < backbone_coordinates.size(); ++i){
     for (unsigned int j = 0; j < insertion.size(); ++j){
-      if (atom_dist(insertion[j], backbone_coordinates[i]) < 4.0){
+      if (atom_dist_fast(insertion[j], backbone_coordinates[i]) < 16.0){
         return true;
       }
     }
@@ -637,11 +499,9 @@ const std::vector<int> Protein::findChains()
   }
 
   char current_chain = chain[0];
-  std::cout << "Start chain: " << current_chain << std::endl;
   chain_start_indices.push_back(0);
 
   for (unsigned int i = 1; i < backbone_coordinates.size(); ++i){
-    std::cout << chain[i];
     if (chain[i] != current_chain){
       chain_start_indices.push_back(i);
       current_chain = chain[i];
@@ -650,6 +510,7 @@ const std::vector<int> Protein::findChains()
 
   return chain_start_indices;
 }
+
 
 
 /*
@@ -685,6 +546,151 @@ std::vector<Protein> Protein::splitChains()
   }
 
   return return_chains;
+}
+
+
+
+/*
+    Collects backbone atom lines from a pdb file, returns a vector
+*/
+std::vector<std::string> Protein::collectAtoms(const char* filename)
+{
+  std::vector<std::string> cleaned_file;
+  //Try to open the PDB file for reading
+  std::ifstream pdb_str(filename);
+  if (!pdb_str.good()) {
+    std::string err(filename);
+    throw std::runtime_error("Couldn't open PDB file " + err + "\n");
+    return cleaned_file;
+  }
+
+  //Check to make sure file isn't empty
+  if ( pdb_str.peek() == std::ifstream::traits_type::eof() ){
+    std::string err(filename);
+    throw std::runtime_error("PDB file was empty!" + err + "\n");
+    return cleaned_file;
+  }
+
+  // Grab backbone atom lines
+  std::string line;
+  std::getline(pdb_str, line);
+  while (!pdb_str.eof() && line.size() > 3){
+    if (line.substr(0, 4) == "ATOM"){
+      if ((line.substr(13,2) == "N " || line.substr(13,2) == "CA" || line.substr(13,2) == "C " || line.substr(13,2) == "O " || line.substr(13,2) == "CB")
+                                                                                                                           && line.substr(16,1) != "B"){
+        cleaned_file.push_back(line);
+        std::getline(pdb_str, line);
+      }
+      else{
+        std::getline(pdb_str, line);
+      }
+    }
+    else{
+      std::getline(pdb_str, line);
+    }
+  }
+
+  return cleaned_file;
+}
+
+
+
+/*
+    Adds a beta carbon onto a 4-atom residue using reference alanine
+*/
+void Protein::addBetaCarbon(std::vector<std::vector<float> >& residue)
+{
+  std::vector<std::vector<float> > truncated_alanine(alanine.begin(), alanine.end() - 1);
+  std::vector<float> cb = alanine[4];
+
+  try{
+    std::pair< std::vector< std::vector<float> > , std::vector<float> >
+    transformation = superimposer(residue, truncated_alanine, 4);
+    superimposer_move(cb, transformation.first, transformation.second);
+    residue.push_back(cb);
+  }
+  catch(int){
+    throw std::runtime_error("Superimposer failed! \n");
+  }
+
+  return;
+}
+
+
+
+/*
+    Parses vector containing pdb backbone atom lines
+*/
+void Protein::parseBackbone(const std::vector<std::string> &cleaned_file)
+{
+  std::string AA;
+  int residue_number;
+  std::string chainID;
+  std::vector<float> xyz(3);
+
+  for (unsigned int i = 0; i < cleaned_file.size(); /*Do nothing*/){
+    AA = cleaned_file[i].substr(17,3);
+    residue_number = atoi( cleaned_file[i].substr(23,3).c_str() );
+    chainID = cleaned_file[i].substr(21,1);
+
+    // Glycines get special treatment :)
+    if (AA == "GLY"){
+      unsigned int j = i + 4;
+      std::vector<std::vector<float> > glycine;
+      while (i < j){
+        xyz[0] =  atof( cleaned_file[i].substr(30,8).c_str() );
+        xyz[1] =  atof( cleaned_file[i].substr(38,8).c_str() );
+        xyz[2] =  atof( cleaned_file[i].substr(46,8).c_str() );
+        glycine.push_back(xyz);
+        ++i;
+      }
+
+      //std::vector<std::vector<float> > t = glycine;
+      addBetaCarbon(glycine);
+
+      // Update protein
+      for (unsigned int k = 0; k < 5; ++k){
+        residue_type.push_back('A');
+        chain.push_back(chainID[0]);
+        atom_residue_numbering.push_back(residue_number);
+        backbone_coordinates.push_back(glycine[k]);
+      }
+    }
+
+    // Not a glycine, check to make sure everything's there and add a beta carbon if one is missing
+    else{
+      unsigned int j = i + 5;
+      std::vector<std::vector<float> > residue;
+
+      while (i < j){
+        // Is this the same residue? If not then it's probably missing a beta carbon
+        std::string current_AA = cleaned_file[i].substr(17,3);
+        int current_residue_number = atoi( cleaned_file[i].substr(23,3).c_str() );
+
+        if (current_AA == AA && current_residue_number == residue_number){
+          xyz[0] =  atof( cleaned_file[i].substr(30,8).c_str() );
+          xyz[1] =  atof( cleaned_file[i].substr(38,8).c_str() );
+          xyz[2] =  atof( cleaned_file[i].substr(46,8).c_str() );
+          residue.push_back(xyz);
+          ++i;
+        }
+        else{
+          addBetaCarbon(residue);
+          break;
+        }
+      }
+
+      // Update protein
+      for (unsigned int k = 0; k < 5; ++k){
+        residue_type.push_back(amino_codes.find(AA)->second);
+        chain.push_back(chainID[0]);
+        atom_residue_numbering.push_back(residue_number);
+        backbone_coordinates.push_back(residue[k]);
+      }
+    }
+  }
+
+  return;
 }
 
 
