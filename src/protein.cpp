@@ -645,7 +645,6 @@ void Protein::parseBackbone(const std::vector<std::string> &cleaned_file)
         ++i;
       }
 
-      //std::vector<std::vector<float> > t = glycine;
       addBetaCarbon(glycine);
 
       // Update protein
