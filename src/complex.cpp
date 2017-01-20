@@ -15,6 +15,7 @@ Complex::Complex(char* input_pdb)
 }
 
 
+
 /*
     Adds a molecule's coordinates to the object
 */
@@ -37,7 +38,7 @@ bool Complex::isCollision(const std::vector< std::vector<float> > &loop)
 
   for (unsigned int i = 0; i < loop.size(); ++i){
     for (unsigned int j = 0; j < coordinates.size(); ++j){
-      if (atom_dist_fast(loop[i], coordinates[j]) < 16.0){
+      if (atomDistanceFast(loop[i], coordinates[j]) < 16.0){
         return true;
       }
     }

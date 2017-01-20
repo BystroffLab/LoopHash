@@ -30,7 +30,12 @@ Lookup::Lookup(char* input_file)
     writeLog();
     exit(EXIT_FAILURE);
   }
+
   logmsg("Set anchors to " + std::to_string(scaffold_start) + " and " + std::to_string(scaffold_end) + "\n");
+
+  if (symmetry > 1){
+    scaffold = scaffold[0].splitChains();
+  }
 
 }
 
@@ -98,8 +103,8 @@ static bool rmsdSort(const Loop& a, const Loop& b)
 */
 void Lookup::run()
 {
-  float CA_CA = ca_ca_dist(original_loop);
-  float CB_CB = cb_cb_dist(original_loop);
+  float CA_CA = alphaCarbonDistance(original_loop);
+  float CB_CB = betaCarbonDistance(original_loop);
 
   // If CA_CA or CB_CB are too big, the database is too small so just quit
   if (CA_CA > 49.9 || CB_CB > 49.9){
@@ -380,7 +385,7 @@ void Lookup::cleanCollisions(std::list<Loop>& results)
 {
   std::list<Loop>::iterator itr;
   for (itr = results.begin(); itr != results.end(); /*Do nothing*/){
-    if (scaffold[0].is_collision(itr->coordinates, scaffold_start, scaffold_end)){
+    if (scaffold[0].isCollision(itr->coordinates, scaffold_start, scaffold_end)){
       itr = results.erase(itr);
       ++scaffold_colliding_loops;
     }
@@ -603,10 +608,10 @@ void Lookup::iRosettaOutput()
     char* filename = strdup(fout.c_str());
 
     if (preserve_sequence){
-      PDB_out(itr->coordinates, itr->sequence, filename);
+      pdbOut(itr->coordinates, itr->sequence, filename);
     }
     else {
-      PDB_out(itr->coordinates, filename);
+      pdbOut(itr->coordinates, filename);
     }
 
   }

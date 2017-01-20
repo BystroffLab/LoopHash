@@ -135,8 +135,8 @@ void countLoops(char* filename, int loop_length, vec_3D& grid){
     //Make sure the whole length requested was read (5 atoms per residue)
     if ( int(loop.size() / 5) == loop_length ){
       //Get d(CA_CA), d(CB_CB), truncate, convert to int
-      float CA_CA = ca_ca_dist(loop);
-      float CB_CB = cb_cb_dist(loop);
+      float CA_CA = alphaCarbonDistance(loop);
+      float CB_CB = betaCarbonDistance(loop);
 
       //Truncate floats
       char sz[64];
@@ -301,8 +301,8 @@ void writeLoops(char* pdbselect, char* loopfile, char* gridfile, const vec_3D& g
       //Make sure the whole length requested was read (5 atoms per residue)
       if ( int(loop.size() / 5) == loop_length ){
         //Get d(CA_CA), d(CB_CB), truncate, convert to int
-        float CA_CA = ca_ca_dist(loop);
-        float CB_CB = cb_cb_dist(loop);
+        float CA_CA = alphaCarbonDistance(loop);
+        float CB_CB = betaCarbonDistance(loop);
 
         //Use values to find bucket
 
@@ -557,8 +557,8 @@ db_query(float CA_CA, float CB_CB, int loop_length, char* pdbselect, char* loopf
 
     } //End loop
 
-    //std::cout << "Real dCA: " << ca_ca_dist(loop) << " dCA Query: " << CA_CA << std::endl;
-    //std::cout << "Real dCB: " << cb_cb_dist(loop) << " dCA Query: " << CB_CB << std::endl;
+    //std::cout << "Real dCA: " << alphaCarbonDistance(loop) << " dCA Query: " << CA_CA << std::endl;
+    //std::cout << "Real dCB: " << betaCarbonDistance(loop) << " dCA Query: " << CB_CB << std::endl;
 
     return_val.push_back(loop);
     residues.push_back(loop_residues);
@@ -687,8 +687,8 @@ void continuous_query_helper(std::vector<std::vector<std::vector<float> > >& res
 
       } //End loop
 
-      //std::cout << "Real dCA: " << ca_ca_dist(loop) << " dCA Query: " << CA_CA << std::endl;
-      //std::cout << "Real dCB: " << cb_cb_dist(loop) << " dCA Query: " << CB_CB << std::endl;
+      //std::cout << "Real dCA: " << alphaCarbonDistance(loop) << " dCA Query: " << CA_CA << std::endl;
+      //std::cout << "Real dCB: " << betaCarbonDistance(loop) << " dCA Query: " << CB_CB << std::endl;
 
       results.push_back(loop);
       residues.push_back(loop_residues);

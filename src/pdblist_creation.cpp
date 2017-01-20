@@ -16,7 +16,7 @@ int main(int argc, char* argv[]){
 
     Protein pdb_select(argv[1]);
     assert( pdb_select.getCoordinates().size() % 5 == 0);
-    pdb_select.RAF_out(argv[2]);
+    pdb_select.RAFout(argv[2]);
     std::cout << "Wrote out " << argv[1] << std::endl;
     return 0;
 
@@ -24,7 +24,7 @@ int main(int argc, char* argv[]){
     catch (int i){
 
       std::cout << "Couldn't process " << argv[1] << std::endl;
-      return 0;
+      return 1;
 
     }
 

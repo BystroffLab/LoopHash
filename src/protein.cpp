@@ -3,7 +3,7 @@
 
 
 /*
-    Default constructor only used for Lookup initialization!! Don't use otherwise
+    Default constructor
 */
 Protein::Protein()
 {
@@ -68,7 +68,6 @@ Protein::Protein(const char* filename)
   // Try to read in the pdb file
   try{
     parseBackbone(collectAtoms(filename));
-
   }
   catch(const std::exception& e){
     if (backbone_coordinates.size() % 5 == 0){
@@ -103,7 +102,7 @@ std::vector<std::vector<float> > Protein::getLoop(int start, int end) const
 /*
     Measures the distance in angstroms between two alpha carbons of a loop
 */
-float ca_ca_dist(const std::vector< std::vector<float> >& loop)
+float alphaCarbonDistance(const std::vector< std::vector<float> >& loop)
 {
   if (loop.size() == 0 || loop.size() == 1){
     std::cerr << "ERROR: No loop to measure. " << std::endl;
@@ -124,7 +123,7 @@ float ca_ca_dist(const std::vector< std::vector<float> >& loop)
 /*
     Measures the distance in angstroms between two beta carbons of a loop
 */
-float cb_cb_dist(const std::vector< std::vector<float> >& loop)
+float betaCarbonDistance(const std::vector< std::vector<float> >& loop)
 {
   if (loop.size() == 0 || loop.size() == 1){
     std::cerr << "ERROR: No loop to measure. " << std::endl;
@@ -145,7 +144,7 @@ float cb_cb_dist(const std::vector< std::vector<float> >& loop)
 /*
     Measures the distance between two points in 3D space (here, atoms)
 */
-float atom_dist(const std::vector<float>& atom1, const std::vector<float>& atom2)
+float atomDistance(const std::vector<float>& atom1, const std::vector<float>& atom2)
 {
   float x = pow( atom1[0] - atom2[0] , 2);
   float y = pow( atom1[1] - atom2[1] , 2);
@@ -159,7 +158,7 @@ float atom_dist(const std::vector<float>& atom1, const std::vector<float>& atom2
     Measures the distance between two points in 3D space (here, atoms)
     Skips square rooting to save some time (use squared distance when checking collisions)
 */
-float atom_dist_fast(const std::vector<float>& atom1, const std::vector<float>& atom2)
+float atomDistanceFast(const std::vector<float>& atom1, const std::vector<float>& atom2)
 {
   float x = (atom1[0] - atom2[0]) * (atom1[0] - atom2[0]);
   float y = (atom1[1] - atom2[1]) * (atom1[1] - atom2[1]);
@@ -223,25 +222,9 @@ float RMSD(const std::vector< std::vector<float> >& loop1, const std::vector< st
 
 
 /*
-    A standard standard deviation function
-*/
-float standard_deviation(const std::vector<float>& values, float mean)
-{
-  float sum = 0;
-
-  for (unsigned int i = 0; i < values.size(); ++i){
-    sum = sum + pow(mean - values[i] , 2);
-  }
-
-  return sqrt( sum / values.size() );
-}
-
-
-
-/*
     Outputs a PDB file with the original (non-alanine) sequence
 */
-void PDB_out (const std::vector< std::vector<float> >& loop, const std::vector<char> residues, char* filename)
+void pdbOut (const std::vector< std::vector<float> >& loop, const std::vector<char> residues, char* filename)
 {
   ////Initialize map of 3-letter amino acid codes to 1 letter codes
   std::map< char, std::string > amino_codes;
@@ -356,7 +339,7 @@ out_file.close();
 /*
   Outputs a loop with its native sequence replaced with alanines
 */
-void PDB_out (const std::vector< std::vector<float> >& loop, char* filename)
+void pdbOut (const std::vector< std::vector<float> >& loop, char* filename)
 {
 
   //Try to open file for writing
@@ -458,14 +441,14 @@ out_file.close();
 /*
     Detect if a given loop is colliding with the scaffold protein
 */
-bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, int start, int end) const
+bool Protein::isCollision (const std::vector<std::vector<float> >& insertion, int start, int end) const
 {
 
   // Check all residues before insertion
   // Skip residue before the anchor
   for (int i = 0; i < (start * 5) - 5; ++i){
     for (unsigned int j = 5; j < insertion.size() -5; ++j){
-      if (atom_dist_fast(insertion[j], backbone_coordinates[i]) < 16.0){
+      if (atomDistanceFast(insertion[j], backbone_coordinates[i]) < 16.0){
         return true;
       }
     }
@@ -475,7 +458,7 @@ bool Protein::is_collision (const std::vector<std::vector<float> >& insertion, i
   // Skip the residue right after the anchor
   for (unsigned int i = (end * 5) + 5; i < backbone_coordinates.size(); ++i){
     for (unsigned int j = 0; j < insertion.size(); ++j){
-      if (atom_dist_fast(insertion[j], backbone_coordinates[i]) < 16.0){
+      if (atomDistanceFast(insertion[j], backbone_coordinates[i]) < 16.0){
         return true;
       }
     }
@@ -577,7 +560,7 @@ std::vector<std::string> Protein::collectAtoms(const char* filename)
   while (!pdb_str.eof() && line.size() > 3){
     if (line.substr(0, 4) == "ATOM"){
       if ((line.substr(13,2) == "N " || line.substr(13,2) == "CA" || line.substr(13,2) == "C " || line.substr(13,2) == "O " || line.substr(13,2) == "CB")
-                                                                                                                           && line.substr(16,1) != "B"){
+                                                                                                                            && line.substr(16,1) != "B"){
         cleaned_file.push_back(line);
         std::getline(pdb_str, line);
       }
@@ -697,7 +680,7 @@ void Protein::parseBackbone(const std::vector<std::string> &cleaned_file)
 /*
     Appends a parsed protein backbone to a random access file (pdblist.dat)
 */
-bool Protein::RAF_out(char* filename)
+bool Protein::RAFout(char* filename)
 {
   /*            FILE STRUCTURE
     Every residue record is 70 bytes:
