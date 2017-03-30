@@ -176,6 +176,8 @@ float RMSD(const std::vector< std::vector<float> >& loop1, const std::vector< st
   //Loops (or molecules) need to be of the same size
   if (loop1.size() != loop2.size()){
     std::cerr << "Loops not of the same size!" << std::endl;
+    std::cerr << "Loop 1: " << loop1.size() << std::endl;
+    std::cerr << "Loop 2: " << loop2.size() << std::endl;
     throw 0;
   }
 
@@ -446,7 +448,7 @@ bool Protein::isCollision (const std::vector<std::vector<float> >& insertion, in
 
   // Check all residues before insertion
   // Skip residue before the anchor
-  for (int i = 0; i < (start * 5) - 5; ++i){
+  for (int i = 0; i < ( (start-1) * 5); ++i){
     for (unsigned int j = 5; j < insertion.size() -5; ++j){
       if (atomDistanceFast(insertion[j], backbone_coordinates[i]) < 16.0){
         return true;
@@ -456,7 +458,7 @@ bool Protein::isCollision (const std::vector<std::vector<float> >& insertion, in
 
   // Check all residues after insertion
   // Skip the residue right after the anchor
-  for (unsigned int i = (end * 5) + 5; i < backbone_coordinates.size(); ++i){
+  for (unsigned int i = ( (end + 1) * 5); i < backbone_coordinates.size(); ++i){
     for (unsigned int j = 0; j < insertion.size(); ++j){
       if (atomDistanceFast(insertion[j], backbone_coordinates[i]) < 16.0){
         return true;

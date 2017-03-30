@@ -5,12 +5,13 @@ Lookup::Lookup(char* input_file)
   //Set default parameters
   length_range[0] = 3;   length_range[1] = 19;
   min_results = 10;      max_results = 25;
-  rmsd_cutoff = 2.0;     sequence_filter = "";
+  rmsd_cutoff = 1.5;     sequence_filter = "";
   filter = false;        sequence_identity_cutoff = 0.0;
   symmetry = 1;          duplicate_threshold = 1.0;
   database_hits = 0;     scaffold_colliding_loops = 0;
   redundant_loops = 0;   complex_colliding_loops = 0;
   bad_fits = 0;          preserve_sequence = false;
+                         loop_colliding_loops = 0;
 
   //Default filenames
   char* db1 = strdup("pdblist.dat");  database_files.push_back(db1);
@@ -35,6 +36,7 @@ Lookup::Lookup(char* input_file)
 
   if (symmetry > 1){
     scaffold = scaffold[0].splitChains();
+    logmsg("Searching in symmetry mode \n");
   }
 
 }
@@ -145,7 +147,7 @@ void Lookup::run()
     // Superimpose, record RMSD, clean out bad results
     std::list<Loop>::iterator loops_itr;
     for (loops_itr = results_buffer.begin(); loops_itr != results_buffer.end(); ++loops_itr){
-      superimposeUsingAnchors(*loops_itr);
+      superimposeUsingAnchors(*loops_itr, original_loop_anchors);
     }
 
     cleanBadFits(results_buffer);
@@ -379,26 +381,135 @@ void Lookup::cleanDuplicates()
 
 
 /*
-    Clean out loops that collide with the scaffold
+    Clean out loops that collide with the scaffold or complex
+    If doing symmetric design, check each copy of the loop against everything else
 */
 void Lookup::cleanCollisions(std::list<Loop>& results)
 {
-  std::list<Loop>::iterator itr;
-  for (itr = results.begin(); itr != results.end(); /*Do nothing*/){
-    if (scaffold[0].isCollision(itr->coordinates, scaffold_start, scaffold_end)){
-      itr = results.erase(itr);
-      ++scaffold_colliding_loops;
+
+  if (symmetry > 1){
+    // Grab all the results in the buffer and superimpose them to each monomer
+    std::vector<std::vector<Loop> > symmetric_loops = superimposeForSymmetry();
+    std::list<Loop>::iterator rb_itr;
+    bool flag = false;
+
+    // Collision detection separated into 3 loops to try to help with readability
+    // Check each loop against each scaffold
+    rb_itr = results.begin();
+    for (unsigned int i = 0; i < symmetric_loops.size() && rb_itr != results.end(); ++i){
+      flag = false;
+      for (unsigned int j = 0; j < symmetric_loops[i].size(); ++j){
+        for (unsigned int k = 0; k < scaffold.size(); ++k){
+
+
+          if (scaffold[k].isCollision(symmetric_loops[i][j].coordinates, scaffold_start, scaffold_end)){
+            //std::cout << "Collision! \n";
+            rb_itr = results.erase(rb_itr);
+            ++scaffold_colliding_loops;
+            flag = true;
+            break;
+          }
+
+        }
+
+        if (flag){
+          break;
+        }
+
+      }
+
+      if (!flag){
+        ++rb_itr;
+      }
+
+
     }
-    else if (complex.isCollision(itr->coordinates)){
-      itr = results.erase(itr);
-      ++complex_colliding_loops;
+
+
+    // Check each loop against any non-scaffold complex molecules
+    rb_itr = results.begin();
+    for (unsigned int i = 0;  i < symmetric_loops.size() && rb_itr != results.end(); ++i){
+      flag = false;
+      for (unsigned int j = 0; j < symmetric_loops[i].size(); ++j){
+        if (complex.isCollision(symmetric_loops[i][j].coordinates)){
+          //std::cout << "Collision! \n";
+          rb_itr = results.erase(rb_itr);
+          ++complex_colliding_loops;
+          flag = true;
+          break;
+        }
+      }
+
+      if (!flag){
+        ++rb_itr;
+      }
+
     }
-    else{
-      ++itr;
+
+
+    // Check each loop against each other loop of the same type
+    rb_itr = results.begin();
+    for (unsigned int i = 0; i < symmetric_loops.size() && rb_itr != results.end(); ++i){
+      flag = false;
+      for (unsigned int j = 0; j < symmetric_loops[i].size(); ++j){
+        for (unsigned int k = j + 1; k < scaffold.size(); ++k){
+
+          if (isCollision(symmetric_loops[i][j], symmetric_loops[i][k])){
+            //std::cout << "Collision! \n";
+            rb_itr = results.erase(rb_itr);
+            ++loop_colliding_loops;
+            flag = true;
+            break;
+          }
+        }
+        if (flag){
+          break;
+        }
+
+      }
+      if (!flag){
+        ++rb_itr;
+      }
+    }
+
+  }
+
+  // Case that there's no symmetry to worry about
+  else{
+    std::list<Loop>::iterator itr;
+    for (itr = results.begin(); itr != results.end(); /*Do nothing*/){
+      if (scaffold[0].isCollision(itr->coordinates, scaffold_start, scaffold_end)){
+        itr = results.erase(itr);
+        ++scaffold_colliding_loops;
+      }
+      else if (complex.isCollision(itr->coordinates)){
+        itr = results.erase(itr);
+        ++complex_colliding_loops;
+      }
+      else{
+        ++itr;
+      }
     }
   }
 }
 
+
+
+/*
+    Checks if two loops collide with each other
+*/
+bool Lookup::isCollision(const Loop &loop1, const Loop &loop2)
+{
+  for (unsigned int i = 0; i < loop1.coordinates.size(); ++i){
+    for (unsigned int j = 0; j < loop2.coordinates.size(); ++j){
+      if (atomDistanceFast(loop1.coordinates[i], loop2.coordinates[j]) < 25.0){
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
 
 /*
     Remove (superimposed) loops if their RMSD is above the cutoff
@@ -444,9 +555,34 @@ Lookup::collectAnchors(const std::vector<std::vector<float> > &loop)
 
 
 /*
+    Takes each loop and creates copies so that each copy has it's own chain
+    Superimposes each loop onto it's respective scaffold
+*/
+std::vector<std::vector<Loop> > Lookup::superimposeForSymmetry()
+{
+  std::vector<std::vector<Loop> > superimposed_loops;
+  std::list<Loop>::iterator rb_itr;
+
+  // Make copies of each result and superimpose
+  for(rb_itr = results_buffer.begin(); rb_itr != results_buffer.end(); ++rb_itr){
+    std::vector<Loop> loop_set;
+    for (int i = 0; i < symmetry; ++i){
+      superimposeUsingAnchors(*rb_itr, collectAnchors(scaffold[i].getLoop(scaffold_start, scaffold_end)));
+      loop_set.push_back(*rb_itr);
+    }
+    superimposed_loops.push_back(loop_set);
+  }
+
+  return superimposed_loops;
+
+}
+
+
+
+/*
     Superimposes database hit's anchors onto the scaffold target anchors and records anchor rmsd
 */
-void Lookup::superimposeUsingAnchors(Loop &database_loop){
+void Lookup::superimposeUsingAnchors(Loop &database_loop, const std::vector<std::vector<float> > &original_loop_anchors){
   std::vector< std::vector<float> > database_loop_anchors = collectAnchors(database_loop.coordinates);
 
   std::pair< std::vector< std::vector<float> > , std::vector<float> >
@@ -464,8 +600,6 @@ void Lookup::superimposeUsingAnchors(Loop &database_loop){
 
 /*
    Parse top-level input file
-   TODO: Compress PROTEIN/DNA to COMPLEX
-         PRESERVE_SEQUENCE
 */
 void Lookup::parse(char* input_file)
 {
@@ -557,16 +691,16 @@ void Lookup::parse(char* input_file)
 
     else if (token == "COMPLEX"){
       in >> token;
-      while (token != "END"){
+      //while (token != "END"){
         try{
           complex.addMolecule(strdup(token.c_str()));
         }
         catch(const std::exception &e){
           logmsg("ERROR: Couldn't parse Complex molecule " + token + "\n");
         }
-        in >> token;
+        //in >> token;
 
-      }
+      //}
     }
 
   }

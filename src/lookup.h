@@ -88,18 +88,22 @@ private:
   unsigned int database_hits;
   unsigned int scaffold_colliding_loops;
   unsigned int complex_colliding_loops;
+  unsigned int loop_colliding_loops;
   unsigned int redundant_loops;
   unsigned int bad_fits;
 
   // Private member functions
   void runHelper(float CA_CA, float CB_CB, int loop_length);
   bool isDuplicate(const Loop &candidate);
+  bool isCollision(const Loop &loop1, const Loop &loop2);
   void updateBuffer();
   void cleanDuplicates();
   void cleanBadFits(std::list<Loop>& results);
   void cleanCollisions(std::list<Loop>& results);
   std::vector<std::vector<float> > collectAnchors(const std::vector<std::vector<float> > &loop);
-  void superimposeUsingAnchors(Loop &database_loop);
+  void superimposeUsingAnchors(Loop &database_loop, const std::vector<std::vector<float> > &original_loop_anchors);
+  std::vector<std::vector<Loop> > superimposeForSymmetry();
+
 
 };
 
