@@ -45,6 +45,7 @@ public:
   void setMin(int x);
   void setMax(int x){ max_results = x; }
   void setCutoff(float x){ duplicate_threshold = x; }
+  void setCollisions(float x){ collision_cutoff = x*x; logmsg("Set collision cutoff to " + std::to_string(collision_cutoff) + "\n");}
   void setSequence(std::string s, float identity);
   void setRange(int min_length, int max_length);
 
@@ -77,6 +78,7 @@ private:
   int max_results;                  // Max number of loops to return
   int length_range[2];              // Range of loop lengths
   float rmsd_cutoff;                // Highest anchor RMSD to accept
+  float collision_cutoff;           // Value below which is considered a steric collision (A^2)
   float duplicate_threshold;        // RMSD threshold for duplicates
   bool filter;                      // Are we filtering by sequence?
   std::string sequence_filter;      // Sequence filter

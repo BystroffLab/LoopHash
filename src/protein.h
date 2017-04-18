@@ -38,7 +38,7 @@ public:
   std::string getIdentifier() const{ return identifier; }
 
   bool RAFout (char* filename);
-  bool isCollision (const std::vector<std::vector<float> >& insertion, int start, int end) const;
+  bool isCollision (const std::vector<std::vector<float> >& insertion, int start, int end, float threshold) const;
   const std::vector<int> findChains();
   std::vector<Protein> splitChains();
 

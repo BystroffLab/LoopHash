@@ -443,14 +443,14 @@ out_file.close();
 /*
     Detect if a given loop is colliding with the scaffold protein
 */
-bool Protein::isCollision (const std::vector<std::vector<float> >& insertion, int start, int end) const
+bool Protein::isCollision (const std::vector<std::vector<float> >& insertion, int start, int end, float threshold) const
 {
 
   // Check all residues before insertion
   // Skip residue before the anchor
-  for (int i = 0; i < ( (start-1) * 5); ++i){
+  for (int i = 0; i < ( (start-2) * 5); ++i){
     for (unsigned int j = 5; j < insertion.size() -5; ++j){
-      if (atomDistanceFast(insertion[j], backbone_coordinates[i]) < 16.0){
+      if (atomDistanceFast(insertion[j], backbone_coordinates[i]) < threshold){
         return true;
       }
     }
@@ -458,9 +458,9 @@ bool Protein::isCollision (const std::vector<std::vector<float> >& insertion, in
 
   // Check all residues after insertion
   // Skip the residue right after the anchor
-  for (unsigned int i = ( (end + 1) * 5); i < backbone_coordinates.size(); ++i){
+  for (unsigned int i = ( (end + 2) * 5); i < backbone_coordinates.size(); ++i){
     for (unsigned int j = 0; j < insertion.size(); ++j){
-      if (atomDistanceFast(insertion[j], backbone_coordinates[i]) < 16.0){
+      if (atomDistanceFast(insertion[j], backbone_coordinates[i]) < threshold){
         return true;
       }
     }

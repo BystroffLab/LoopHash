@@ -3,15 +3,15 @@
 Lookup::Lookup(char* input_file)
 {
   //Set default parameters
-  length_range[0] = 3;   length_range[1] = 19;
-  min_results = 10;      max_results = 25;
-  rmsd_cutoff = 1.5;     sequence_filter = "";
-  filter = false;        sequence_identity_cutoff = 0.0;
-  symmetry = 1;          duplicate_threshold = 1.0;
-  database_hits = 0;     scaffold_colliding_loops = 0;
-  redundant_loops = 0;   complex_colliding_loops = 0;
-  bad_fits = 0;          preserve_sequence = false;
-                         loop_colliding_loops = 0;
+  length_range[0] = 3;     length_range[1] = 19;
+  min_results = 10;        max_results = 25;
+  rmsd_cutoff = 2.5;       sequence_filter = "";
+  filter = false;          sequence_identity_cutoff = 0.0;
+  symmetry = 1;            duplicate_threshold = 1.0;
+  database_hits = 0;       scaffold_colliding_loops = 0;
+  redundant_loops = 0;     complex_colliding_loops = 0;
+  bad_fits = 0;            preserve_sequence = false;
+  collision_cutoff = 16.0; loop_colliding_loops = 0;
 
   //Default filenames
   char* db1 = strdup("pdblist.dat");  database_files.push_back(db1);
@@ -402,7 +402,7 @@ void Lookup::cleanCollisions(std::list<Loop>& results)
         for (unsigned int k = 0; k < scaffold.size(); ++k){
 
 
-          if (scaffold[k].isCollision(symmetric_loops[i][j].coordinates, scaffold_start, scaffold_end)){
+          if (scaffold[k].isCollision(symmetric_loops[i][j].coordinates, scaffold_start, scaffold_end, collision_cutoff)){
             //std::cout << "Collision! \n";
             rb_itr = results.erase(rb_itr);
             ++scaffold_colliding_loops;
@@ -478,7 +478,7 @@ void Lookup::cleanCollisions(std::list<Loop>& results)
   else{
     std::list<Loop>::iterator itr;
     for (itr = results.begin(); itr != results.end(); /*Do nothing*/){
-      if (scaffold[0].isCollision(itr->coordinates, scaffold_start, scaffold_end)){
+      if (scaffold[0].isCollision(itr->coordinates, scaffold_start, scaffold_end, collision_cutoff)){
         itr = results.erase(itr);
         ++scaffold_colliding_loops;
       }
@@ -689,16 +689,19 @@ void Lookup::parse(char* input_file)
       logfile = strdup(token.c_str());
     }
 
+    else if (token == "COLLISION"){
+      in >> token;
+      setCollisions(atof(token.c_str()));
+    }
+
     else if (token == "COMPLEX"){
       in >> token;
-      //while (token != "END"){
         try{
           complex.addMolecule(strdup(token.c_str()));
         }
         catch(const std::exception &e){
           logmsg("ERROR: Couldn't parse Complex molecule " + token + "\n");
         }
-        //in >> token;
 
       //}
     }
