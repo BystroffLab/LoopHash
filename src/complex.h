@@ -21,7 +21,7 @@ public:
 
   unsigned int size(){ return coordinates.size(); }
   void addMolecule(char* input_pdb);
-  bool isCollision(const std::vector<std::vector<float> > &loop);
+  bool isCollision(const std::vector<std::vector<float> > &loop, float collision_cutoff);
   void printComplex();
 
 private:

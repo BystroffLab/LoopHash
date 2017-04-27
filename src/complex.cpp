@@ -30,7 +30,7 @@ void Complex::addMolecule(char* input_pdb)
 /*
     Checks to see if a loop collides with the coordinates in the complex
 */
-bool Complex::isCollision(const std::vector< std::vector<float> > &loop)
+bool Complex::isCollision(const std::vector< std::vector<float> > &loop, float collision_cutoff)
 {
   if (coordinates.size() == 0){
     return false;
@@ -38,7 +38,7 @@ bool Complex::isCollision(const std::vector< std::vector<float> > &loop)
 
   for (unsigned int i = 0; i < loop.size(); ++i){
     for (unsigned int j = 0; j < coordinates.size(); ++j){
-      if (atomDistanceFast(loop[i], coordinates[j]) < 16.0){
+      if (atomDistanceFast(loop[i], coordinates[j]) < collision_cutoff){
         return true;
       }
     }

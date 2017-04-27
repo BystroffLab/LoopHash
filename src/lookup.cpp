@@ -431,7 +431,7 @@ void Lookup::cleanCollisions(std::list<Loop>& results)
     for (unsigned int i = 0;  i < symmetric_loops.size() && rb_itr != results.end(); ++i){
       flag = false;
       for (unsigned int j = 0; j < symmetric_loops[i].size(); ++j){
-        if (complex.isCollision(symmetric_loops[i][j].coordinates)){
+        if (complex.isCollision(symmetric_loops[i][j].coordinates, collision_cutoff)){
           //std::cout << "Collision! \n";
           rb_itr = results.erase(rb_itr);
           ++complex_colliding_loops;
@@ -482,7 +482,7 @@ void Lookup::cleanCollisions(std::list<Loop>& results)
         itr = results.erase(itr);
         ++scaffold_colliding_loops;
       }
-      else if (complex.isCollision(itr->coordinates)){
+      else if (complex.isCollision(itr->coordinates, collision_cutoff)){
         itr = results.erase(itr);
         ++complex_colliding_loops;
       }
@@ -502,7 +502,7 @@ bool Lookup::isCollision(const Loop &loop1, const Loop &loop2)
 {
   for (unsigned int i = 0; i < loop1.coordinates.size(); ++i){
     for (unsigned int j = 0; j < loop2.coordinates.size(); ++j){
-      if (atomDistanceFast(loop1.coordinates[i], loop2.coordinates[j]) < 25.0){
+      if (atomDistanceFast(loop1.coordinates[i], loop2.coordinates[j]) < collision_cutoff){
         return true;
       }
     }
