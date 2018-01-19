@@ -70,6 +70,7 @@ private:
   std::vector<char*> database_files; // [0]=pdb select, [1]=loop db, [2]=grid
   char* logfile;
   std::vector<std::string> logdump;
+  std::string fileExtension;
 
   // Parameters
   int scaffold_start;               // N term anchor

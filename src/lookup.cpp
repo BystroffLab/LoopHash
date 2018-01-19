@@ -627,7 +627,10 @@ void Lookup::parse(char* input_file)
         exit(EXIT_FAILURE);
       }
     }
-
+    else if (token == "FILEEXTENSION"){
+        in >> token;
+        fileExtension = token.c_str();
+    }
     else if (token == "ANCHORS"){
       in >> token;
       scaffold_start = atoi(token.c_str());
@@ -738,10 +741,10 @@ void Lookup::writeLog()
 void Lookup::iRosettaOutput()
 {
   std::list<Loop>::iterator itr = results.begin();
-
-  for (int i = 1; itr != results.end(); ++itr, ++i){
+  int i = 1;
+  for (i = 1; itr != results.end(); ++itr, ++i){
     // Output named so that irosetta can pick up results
-    std::string fout = "loopout_" + std::to_string(i) + ".pdb";
+    std::string fout = fileExtension + "loopout_" + std::to_string(i) + ".pdb";
     char* filename = strdup(fout.c_str());
 
     if (preserve_sequence){
@@ -755,6 +758,6 @@ void Lookup::iRosettaOutput()
 
   // Let irosetta know how many results there were
   logmsg("Succesfully wrote " + std::to_string(results.size()) + " loops. \n");
-  std::cout << results.size();
+  std::cout << results.size()<<std::endl;
   return;
 }
