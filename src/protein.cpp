@@ -226,7 +226,7 @@ float RMSD(const std::vector< std::vector<float> >& loop1, const std::vector< st
 /*
     Outputs a PDB file with the original (non-alanine) sequence
 */
-void pdbOut (const std::vector< std::vector<float> >& loop, const std::vector<char> residues, char* filename)
+void pdbOut (const std::vector< std::vector<float> >& loop, const std::vector<char> residues,const std::string& pdbInfo, char* filename)
 {
   ////Initialize map of 3-letter amino acid codes to 1 letter codes
   std::map< char, std::string > amino_codes;
@@ -277,6 +277,8 @@ void pdbOut (const std::vector< std::vector<float> >& loop, const std::vector<ch
   int counter2 = 1;
   std::string whitespace(1, ' ');
 
+  // Write out pdbInfo
+  out_file << pdbInfo;
   for (unsigned int i = 0; i < loop.size(); ++i, ++counter1){
     //Non-numeric data
     std::string line(80, ' ');
@@ -341,7 +343,7 @@ out_file.close();
 /*
   Outputs a loop with its native sequence replaced with alanines
 */
-void pdbOut (const std::vector< std::vector<float> >& loop, char* filename)
+void pdbOut (const std::vector< std::vector<float> >& loop, const std::string& pdbInfo, char* filename)
 {
 
   //Try to open file for writing
@@ -378,6 +380,9 @@ void pdbOut (const std::vector< std::vector<float> >& loop, char* filename)
   int counter1 = 0;
   int counter2 = 1;
   std::string whitespace(1, ' ');
+
+  // Write pdbInfo
+  out_file << pdbInfo;
 
   for (unsigned int i = 0; i < loop.size(); ++i, ++counter1){
     //Non-numeric data
@@ -561,8 +566,10 @@ std::vector<std::string> Protein::collectAtoms(const char* filename)
   std::getline(pdb_str, line);
   while (!pdb_str.eof() && line.size() > 3){
     if (line.substr(0, 4) == "ATOM"){
-      if ((line.substr(13,2) == "N " || line.substr(13,2) == "CA" || line.substr(13,2) == "C " || line.substr(13,2) == "O " || line.substr(13,2) == "CB")
-                                                                                                                            && line.substr(16,1) != "B"){
+      if ((line.substr(13,2) == "N " || line.substr(13,2) == "CA" || line.substr(13,2) == "C " || line.substr(13,2) == "O " || line.substr(13,2) == "CB") 
+      //altLoc != "B" *THIS COULD BE PROBLEMATIC*  What if altLoc == "C"? etc...
+      //bdb
+      && line.substr(16,1) != "B"){
         cleaned_file.push_back(line);
         std::getline(pdb_str, line);
       }

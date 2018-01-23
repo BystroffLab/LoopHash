@@ -3,9 +3,9 @@ CC= g++
 CFLAGS= -Wall -std=c++11 -O3
 
 all:
-	$(CC) $(CFLAGS) database_creation.cpp protein.cpp lookup.cpp superimposer.cpp loop_generation.cpp -o database_creation.exe
-	$(CC) $(CFLAGS) pdblist_creation.cpp protein.cpp lookup.cpp superimposer.cpp loop_generation.cpp -o pdblist_creation.exe
-	$(CC) $(CFLAGS) iRosetta_Lookup.cpp protein.cpp lookup.cpp superimposer.cpp loop_generation.cpp -o iRosetta_Lookup.exe
+	$(CC) $(CFLAGS) database_creation.cpp protein.cpp lookup.cpp superimposer.cpp loop_generation.cpp complex.cpp -o database_creation.exe
+	$(CC) $(CFLAGS) pdblist_creation.cpp protein.cpp lookup.cpp superimposer.cpp loop_generation.cpp complex.cpp -o pdblist_creation.exe
+	$(CC) $(CFLAGS) iRosetta_Lookup.cpp protein.cpp lookup.cpp superimposer.cpp loop_generation.cpp complex.cpp -o iRosetta_Lookup.exe
 
 database:
 	$(CC) $(CFLAGS) pdblist_creation.cpp protein.cpp lookup.cpp superimposer.cpp loop_generation.cpp complex.cpp -o pdblist_creation.exe

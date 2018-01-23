@@ -25,6 +25,7 @@ struct Loop{
   std::vector<std::vector<float> > coordinates;
   std::vector<char> sequence;
   float rmsd;
+  std::string pdbInfo;
 };
 
 

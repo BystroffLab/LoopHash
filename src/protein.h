@@ -74,8 +74,8 @@ float RMSD(const std::vector< std::vector<float> >& loop1, const std::vector< st
 
 
 //Output
-void pdbOut (const std::vector< std::vector<float> >& loop, const std::vector<char> residues, char* filename );
-void pdbOut (const std::vector< std::vector<float> >& loop, char* filename );
+void pdbOut (const std::vector< std::vector<float> >& loop, const std::vector<char> residues,const std::string& pdbInfo, char* filename );
+void pdbOut (const std::vector< std::vector<float> >& loop, const std::string& pdbInfo, char* filename );
 
 
 #endif

@@ -1,5 +1,5 @@
 #include "lookup.h"
-
+#include <sstream>
 Lookup::Lookup(char* input_file)
 {
   //Set default parameters
@@ -274,9 +274,16 @@ void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length)
 
   //Output
   for (unsigned int i = 0; i < loop_pointers.size(); ++i){
-    //std::cout << "Loop at " << loop_pointers[i][0] << " of length " << loop_pointers[i][1] << std::endl;
+    // debug output 
+    std::stringstream stringIn;
+    stringIn << "Loop at " << loop_pointers[i][0] << " of length " << loop_pointers[i][1] << std::endl;
+    logmsg(stringIn.str());
     pdb_in.seekg(loop_pointers[i][0]);
-    //std::cout << "----------------- Loop " << i + 1 << " -----------------" << std::endl;
+    // debug output    
+    // std::cout << "----------------- Loop " << i + 1 << " -----------------" << std::endl;
+    // logmsg("----------------- Loop " +std::to_string( i + 1) + " -----------------"+"\n");
+    std::stringstream infoStream;
+    infoStream << "REMARK 1"<<std::endl;
     for (int j = 0; j < loop_pointers[i][1]; ++ j){
 
       pdb_in.read( pdb_code, (sizeof(char) * 4) );
@@ -284,8 +291,14 @@ void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length)
       pdb_in.read( (char*)& residue_number, sizeof(int) );
       pdb_in.read( (char*)& chain, sizeof(char) );
       pdb_code[4] = '\0';
-
-      //std::cout << "PDB " << pdb_code << "  Residue " << aa << residue_number << " Chain " << chain << std::endl;
+      // debug output
+      // std::cout << "PDB " << pdb_code << "  Residue " << aa << residue_number << " Chain " << chain << std::endl;
+      std::string logString;
+      std::stringstream stringIn;
+      stringIn << "PDB " << pdb_code << "  Residue " << aa << residue_number << " Chain " << chain << std::endl;
+      infoStream << "REMARK 1   PDB "<<pdb_code<<" res "<<aa<<residue_number<<chain<<std::endl;
+      logString = stringIn.str();
+      logmsg(logString);
       loop_residues.push_back(aa);
 
       for (int i = 0; i < 5; ++i){
@@ -309,6 +322,7 @@ void Lookup::runHelper(float CA_CA, float CB_CB, int loop_length)
     return_loop.coordinates = loop;
     return_loop.sequence = loop_residues;
     return_loop.rmsd = 0.0;
+    return_loop.pdbInfo = infoStream.str();
     results_buffer.push_back(return_loop);
 
     loop_residues.clear();
@@ -748,10 +762,10 @@ void Lookup::iRosettaOutput()
     char* filename = strdup(fout.c_str());
 
     if (preserve_sequence){
-      pdbOut(itr->coordinates, itr->sequence, filename);
+      pdbOut(itr->coordinates, itr->sequence,itr->pdbInfo, filename);
     }
     else {
-      pdbOut(itr->coordinates, filename);
+      pdbOut(itr->coordinates,itr->pdbInfo, filename);
     }
 
   }
