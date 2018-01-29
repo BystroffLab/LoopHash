@@ -289,9 +289,9 @@ void pdbOut (const std::vector< std::vector<float> >& loop, const std::vector<ch
     //xyz coordinates
     std::stringstream xyz;
     xyz.precision(3);
-    xyz << std::fixed << std::right << std::setw(7) << loop[i][0] << " " << std::setw(7) << loop[i][1] << " " << std::setw(7) << loop[i][2];
+    xyz << std::fixed << std::right << std::setw(8) << loop[i][0] << std::setw(8) << loop[i][1] <<std::setw(8) << loop[i][2];
     std::string xyz_str = xyz.str();
-    line.replace(31, 20, xyz_str);
+    line.replace(30, 20, xyz_str);
 
     //Atom counting
     int sn = i + 1;
@@ -394,9 +394,9 @@ void pdbOut (const std::vector< std::vector<float> >& loop, const std::string& p
     //xyz coordinates
     std::stringstream xyz;
     xyz.precision(3);
-    xyz << std::fixed << std::right << std::setw(7) << loop[i][0] << " " << std::setw(7) << loop[i][1] << " " << std::setw(7) << loop[i][2];
+    xyz << std::fixed << std::right << std::setw(8) << loop[i][0] << std::setw(8) << loop[i][1] <<std::setw(8) << loop[i][2];
     std::string xyz_str = xyz.str();
-    line.replace(31, 20, xyz_str);
+    line.replace(30, 20, xyz_str);
 
     //Atom counting
     int sn = i + 1;
